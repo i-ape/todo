@@ -22,7 +22,6 @@ It covers:
 ## 📂 Project Structure
 
 todo-cli/ 
-
 - │── main.go          # Entry point, calls command handlers 
 - │── task.go          # Task struct and related functions 
 - │── storage.go       # Reads/Writes tasks to a JSON file 

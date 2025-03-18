@@ -32,7 +32,7 @@ todo-cli/
 1. Install Go: [Download Go](https://go.dev/dl/)
 2. Clone this repository:
    ```sh
-   git clone https://github.com/your-username/todo-cli.git
+   git clone https://github.com/i-ape/todo-cli.git
    cd todo-cli
 
 3. Initialize Go module:

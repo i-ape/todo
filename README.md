@@ -22,11 +22,12 @@ It covers:
 ## 📂 Project Structure
 
 todo-cli/ 
--│── main.go          # Entry point, calls command handlers 
--│── task.go          # Task struct and related functions 
--│── storage.go       # Reads/Writes tasks to a JSON file 
--│── commands.go      # CLI command handlers 
--│── tasks.json       # JSON file (created at runtime)
+
+- │── main.go          # Entry point, calls command handlers 
+- │── task.go          # Task struct and related functions 
+- │── storage.go       # Reads/Writes tasks to a JSON file 
+- │── commands.go      # CLI command handlers 
+- │── tasks.json       # JSON file (created at runtime)
 
 ## 🔧 Installation
 1. Install Go: [Download Go](https://go.dev/dl/)

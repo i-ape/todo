@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"github.com/fatih/color"
 )
 
 // Add a new task
@@ -18,7 +19,11 @@ func AddTask(text string) error {
 func ListTasks() {
 	tasks, _ := LoadTasks()
 	for _, task := range tasks {
-		fmt.Println(task)
+		if task.Completed {
+			color.Green("[✅] %d: %s", task.ID, task.Text)
+		} else {
+			color.Red("[❌] %d: %s", task.ID, task.Text)
+		}
 	}
 }
 

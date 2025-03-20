@@ -2,7 +2,7 @@
 
 i wanna get good at go since typescript uses it :)
 
-# 📝 Go CLI To-Do List
+## 📝 Go CLI To-Do List
 
 ## 📌 Project Overview
 

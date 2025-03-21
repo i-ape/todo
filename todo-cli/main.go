@@ -1,4 +1,4 @@
-package main
+package todo
 
 import (
 	"todo-cli/cmd"

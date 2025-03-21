@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"todo-cli/todo"
-
 	"github.com/spf13/cobra"
 )
 

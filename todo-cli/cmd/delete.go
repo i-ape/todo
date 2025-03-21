@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"strconv"
-	"todo-cli"
+	"todo-cli/todo"  // ✅ Import correct package
 
 	"github.com/spf13/cobra"
 )
@@ -18,7 +18,7 @@ var deleteCmd = &cobra.Command{
 			fmt.Println("Invalid task ID:", args[0])
 			return
 		}
-		err = todo_cli.DeleteTask(id)
+		err = todo.DeleteTask(id)  // ✅ Use correct function call
 		if err != nil {
 			fmt.Println("Error:", err)
 		} else {

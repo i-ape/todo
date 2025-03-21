@@ -1,4 +1,4 @@
-package main
+package todo  // Change from `package main` to `package todo`
 
 import "fmt"
 
@@ -8,7 +8,6 @@ type Task struct {
 	Completed bool   `json:"completed"`
 }
 
-// Format task display
 func (t Task) String() string {
 	status := "❌"
 	if t.Completed {

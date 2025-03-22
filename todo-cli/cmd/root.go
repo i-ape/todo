@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"os"
-	"todo-cli/todo"
-
 
 	"github.com/spf13/cobra"
 )

@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"strconv"
-	"todo-cli/todo"
+	"todo-cli/todo"  // ✅ Import task management functions
 
 	"github.com/spf13/cobra"
 )
@@ -18,7 +18,7 @@ var doneCmd = &cobra.Command{
 			fmt.Println("Invalid task ID:", args[0])
 			return
 		}
-		err = todo.MarkTaskDone(id)  // ✅ Use correct function call
+		err = todo.MarkTaskDone(id)  // ✅ Use function from `todo/task.go`
 		if err != nil {
 			fmt.Println("Error:", err)
 		} else {

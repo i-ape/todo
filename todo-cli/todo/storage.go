@@ -1,4 +1,4 @@
-package todo  // Change from `package main` to `package todo`
+package todo
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 
 const filename = "tasks.json"
 
-// LoadTasks reads tasks from a file
+// ✅ Exported function (uppercase L)
 func LoadTasks() ([]Task, error) {
 	var tasks []Task
 	file, err := os.ReadFile(filename)
@@ -22,7 +22,7 @@ func LoadTasks() ([]Task, error) {
 	return tasks, err
 }
 
-// SaveTasks writes tasks to a file
+// ✅ Exported function (uppercase S)
 func SaveTasks(tasks []Task) error {
 	data, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {

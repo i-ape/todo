@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"strconv"
-	"todo-cli/todo"  // ✅ Import correct package
+	"todo-cli/todo"
 
 	"github.com/spf13/cobra"
 )

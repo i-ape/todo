@@ -8,13 +8,13 @@ import (
 
 const filename = "tasks.json"
 
-// ✅ LoadTasks reads tasks from the JSON file
+// LoadTasks reads tasks from the JSON file
 func LoadTasks() ([]Task, error) {
 	var tasks []Task
 	file, err := os.ReadFile(filename)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return []Task{}, nil // Return empty list if file doesn't exist
+			return []Task{}, nil // If file doesn't exist, return an empty task list
 		}
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func LoadTasks() ([]Task, error) {
 	return tasks, err
 }
 
-// ✅ SaveTasks writes tasks to the JSON file
+// SaveTasks writes tasks to the JSON file
 func SaveTasks(tasks []Task) error {
 	data, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {

@@ -5,7 +5,6 @@ import (
 	"os"
 	"strconv"
 	"time"
-	"todo-cli/todo"
 )
 
 func main() {
@@ -29,7 +28,7 @@ func main() {
 			fmt.Println("Invalid date format. Use YYYY-MM-DD")
 			return
 		}
-		if err := todo.AddTask(taskText, dueDate); err != nil {
+		if err := AddTask(taskText, dueDate); err != nil {
 			fmt.Println("Error:", err)
 		} else {
 			fmt.Println("✅ Task added:", taskText, "(Due:", dueDate, ")")

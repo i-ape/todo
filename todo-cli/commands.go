@@ -5,46 +5,29 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	"todo-cli/todo"  // ✅ Ensure this matches your `go.mod`
 )
 
-// AddTask adds a new task
+
+// AddTask adds a new task (calls `todo.AddTask`)
 func AddTask(text string) error {
-	tasks, _ := LoadTasks()
-	newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false}
-	tasks = append(tasks, newTask)
-	return SaveTasks(tasks)
+	return todo.AddTask(text)  // ✅ Call function from `todo`
 }
 
-// ListTasks displays all tasks
+// ListTasks displays all tasks (calls `todo.ListTasks`)
 func ListTasks() {
-	tasks, _ := LoadTasks()
-	for _, task := range tasks {
-		fmt.Println(task)
-	}
+	todo.ListTasks()  // ✅ Call function from `todo`
 }
 
-// MarkTaskDone marks a task as completed
+// MarkTaskDone marks a task as completed (calls `todo.MarkTaskDone`)
 func MarkTaskDone(id int) error {
-	tasks, _ := LoadTasks()
-	for i, task := range tasks {
-		if task.ID == id {
-			tasks[i].Completed = true
-			return SaveTasks(tasks)
-		}
-	}
-	return fmt.Errorf("task with ID %d not found", id)
+	return todo.MarkTaskDone(id)  // ✅ Call function from `todo`
 }
 
-// DeleteTask removes a task
+// DeleteTask removes a task (calls `todo.DeleteTask`)
 func DeleteTask(id int) error {
-	tasks, _ := LoadTasks()
-	for i, task := range tasks {
-		if task.ID == id {
-			tasks = append(tasks[:i], tasks[i+1:]...)
-			return SaveTasks(tasks)
-		}
-	}
-	return fmt.Errorf("task with ID %d not found", id)
+	return todo.DeleteTask(id)  // ✅ Call function from `todo`
 }
 
 // Handle CLI commands

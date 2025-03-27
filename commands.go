@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	"todo-cli/todo"  // ✅ Ensure this matches your `go.mod`
+	"todo"  // ✅ Ensure this matches your `go.mod`
 )
 
 

@@ -6,31 +6,30 @@ import (
 	"os"
 	"strconv"
 
-	"todo"  // ✅ Ensure this matches your `go.mod`
+	"todo-cli/todo"
 )
 
-
-// AddTask adds a new task (calls `todo.AddTask`)
+// AddTask adds a new task
 func AddTask(text string) error {
-	return todo.AddTask(text)  // ✅ Call function from `todo`
+	return todo.AddTask(text)
 }
 
-// ListTasks displays all tasks (calls `todo.ListTasks`)
+// ListTasks displays all tasks
 func ListTasks() {
-	todo.ListTasks()  // ✅ Call function from `todo`
+	todo.ListTasks()
 }
 
-// MarkTaskDone marks a task as completed (calls `todo.MarkTaskDone`)
+// MarkTaskDone marks a task as completed
 func MarkTaskDone(id int) error {
-	return todo.MarkTaskDone(id)  // ✅ Call function from `todo`
+	return todo.MarkTaskDone(id)
 }
 
-// DeleteTask removes a task (calls `todo.DeleteTask`)
+// DeleteTask removes a task
 func DeleteTask(id int) error {
-	return todo.DeleteTask(id)  // ✅ Call function from `todo`
+	return todo.DeleteTask(id)
 }
 
-// Handle CLI commands
+// HandleCommands processes CLI input
 func HandleCommands() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: todo add|list|done|delete [task text or task ID]")
@@ -58,7 +57,7 @@ func HandleCommands() {
 			fmt.Println("Usage: todo done [task ID]")
 			return
 		}
-		id, _ := strconv.Atoi(os.Args[2])
+		id, _ := strconv.Atoi(os.Args[2]) // Fix: Ensure it's an integer
 		if err := MarkTaskDone(id); err != nil {
 			fmt.Println("Error:", err)
 		}
@@ -68,7 +67,7 @@ func HandleCommands() {
 			fmt.Println("Usage: todo delete [task ID]")
 			return
 		}
-		id, _ := strconv.Atoi(os.Args[2])
+		id, _ := strconv.Atoi(os.Args[2]) // Fix: Ensure it's an integer
 		if err := DeleteTask(id); err != nil {
 			fmt.Println("Error:", err)
 		}

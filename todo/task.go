@@ -1,30 +1,49 @@
 // task.go
-package todo  // ✅ Must use package "todo"
+package todo
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/fatih/color"
 )
 
-// Task struct represents a to-do task
+// Task struct
 type Task struct {
-	ID        int       `json:"id"`
-	Text      string    `json:"text"`
-	Completed bool      `json:"completed"`
-	DueDate   string    `json:"due_date"`
+	ID        int    `json:"id"`
+	Text      string `json:"text"`
+	Completed bool   `json:"completed"`
+	DueDate   string `json:"due_date,omitempty"`
 }
 
-// AddTask adds a new task with an optional due date
-func AddTask(text, dueDate string) error {
+// LoadTasks loads tasks from `tasks.json`
+func LoadTasks() ([]Task, error) {
+	data, err := os.ReadFile("tasks.json")
+	if err != nil {
+		return []Task{}, nil // Return empty slice if file doesn't exist
+	}
+	var tasks []Task
+	json.Unmarshal(data, &tasks)
+	return tasks, nil
+}
+
+// SaveTasks saves tasks to `tasks.json`
+func SaveTasks(tasks []Task) error {
+	data, _ := json.MarshalIndent(tasks, "", "  ")
+	return os.WriteFile("tasks.json", data, 0644)
+}
+
+// AddTask adds a task
+func AddTask(text string) error {
 	tasks, _ := LoadTasks()
-	newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false, DueDate: dueDate}
+	newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false}
 	tasks = append(tasks, newTask)
 	return SaveTasks(tasks)
 }
 
-// ListTasks displays all tasks with due dates
+// ListTasks prints all tasks
 func ListTasks() {
 	tasks, _ := LoadTasks()
 	if len(tasks) == 0 {
@@ -32,23 +51,37 @@ func ListTasks() {
 		return
 	}
 	for _, task := range tasks {
-		var status string
+		status := color.CyanString("[ ] %d: %s", task.ID, task.Text)
 		if task.Completed {
-			status = color.GreenString("[✅] %d: %s (Due: %s)", task.ID, task.Text, task.DueDate)
-		} else {
-			// Check if task is overdue
-			due, _ := time.Parse("2006-01-02", task.DueDate)
-			if time.Now().After(due) {
-				status = color.RedString("[❗ OVERDUE ❗] %d: %s (Due: %s)", task.ID, task.Text, task.DueDate)
-			} else {
-				status = color.CyanString("[❌] %d: %s (Due: %s)", task.ID, task.Text, task.DueDate)
-			}
+			status = color.GreenString("[✓] %d: %s", task.ID, task.Text)
 		}
 		fmt.Println(status)
 	}
 }
 
-// ClearTasks removes all tasks by deleting the tasks.json file
-func ClearTasks() error {
-	return os.Remove("tasks.json")
+// MarkTaskDone marks a task as completed
+func MarkTaskDone(id int) error {
+	tasks, _ := LoadTasks()
+	for i := range tasks {
+		if tasks[i].ID == id {
+			tasks[i].Completed = true
+			return SaveTasks(tasks)
+		}
+	}
+	return fmt.Errorf("task not found")
+}
+
+// DeleteTask deletes a task
+func DeleteTask(id int) error {
+	tasks, _ := LoadTasks()
+	newTasks := []Task{}
+	for _, task := range tasks {
+		if task.ID != id {
+			newTasks = append(newTasks, task)
+		}
+	}
+	if len(tasks) == len(newTasks) {
+		return fmt.Errorf("task not found")
+	}
+	return SaveTasks(newTasks)
 }

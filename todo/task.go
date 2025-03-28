@@ -1,12 +1,7 @@
-// task.go
 package todo
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"time"
-
 	"github.com/fatih/color"
 )
 
@@ -16,23 +11,6 @@ type Task struct {
 	Text      string `json:"text"`
 	Completed bool   `json:"completed"`
 	DueDate   string `json:"due_date,omitempty"`
-}
-
-// LoadTasks loads tasks from `tasks.json`
-func LoadTasks() ([]Task, error) {
-	data, err := os.ReadFile("tasks.json")
-	if err != nil {
-		return []Task{}, nil // Return empty slice if file doesn't exist
-	}
-	var tasks []Task
-	json.Unmarshal(data, &tasks)
-	return tasks, nil
-}
-
-// SaveTasks saves tasks to `tasks.json`
-func SaveTasks(tasks []Task) error {
-	data, _ := json.MarshalIndent(tasks, "", "  ")
-	return os.WriteFile("tasks.json", data, 0644)
 }
 
 // AddTask adds a task
@@ -71,7 +49,7 @@ func MarkTaskDone(id int) error {
 	return fmt.Errorf("task not found")
 }
 
-// DeleteTask deletes a task
+// DeleteTask deletes a task (✅ Ensure function name is capitalized for export)
 func DeleteTask(id int) error {
 	tasks, _ := LoadTasks()
 	newTasks := []Task{}

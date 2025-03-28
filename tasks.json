@@ -1,6 +1,16 @@
 [
   {
-    "id": 1,
+    "id": 2,
+    "text": "add more functionality,",
+    "completed": false
+  },
+  {
+    "id": 3,
+    "text": "add deadline fn",
+    "completed": false
+  },
+  {
+    "id": 3,
     "text": "Fix Go imports",
     "completed": false
   }

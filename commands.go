@@ -64,17 +64,16 @@ func HandleCommands() {
 
 	case "delete":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: todo delete [task ID]")
+			fmt.Println("Usage: todo delete [task ID or task text]")
 			return
 		}
-		id, err := strconv.Atoi(os.Args[2]) // Convert argument to integer
-		if err != nil {
-			fmt.Println("Error: Task ID must be a number")
-			return
-		}
-		if err := DeleteTask(id); err != nil {
+	
+		input := os.Args[2] // Always pass a string
+		if err := DeleteTask(input); err != nil {
 			fmt.Println("Error:", err)
 		}
+	
+	
 	default:
 		fmt.Println("Invalid command. Use add|list|done|delete")
 	}

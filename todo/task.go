@@ -2,6 +2,8 @@ package todo
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/fatih/color"
 )
 
@@ -50,16 +52,27 @@ func MarkTaskDone(id int) error {
 }
 
 // DeleteTask deletes a task (✅ Ensure function name is capitalized for export)
-func DeleteTask(id int) error {
+// DeleteTask deletes a task by ID or text
+func DeleteTask(input string) error {
 	tasks, _ := LoadTasks()
 	newTasks := []Task{}
+	found := false
+
+	// Try converting input to an integer (ID)
+	id, err := strconv.Atoi(input)
 	for _, task := range tasks {
-		if task.ID != id {
-			newTasks = append(newTasks, task)
+		// Check by ID or by task name
+		if (err == nil && task.ID == id) || task.Text == input {
+			found = true
+			continue // Skip this task (delete it)
 		}
+		newTasks = append(newTasks, task)
 	}
-	if len(tasks) == len(newTasks) {
+
+	if !found {
 		return fmt.Errorf("task not found")
 	}
+
 	return SaveTasks(newTasks)
 }
+

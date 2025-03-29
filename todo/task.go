@@ -58,11 +58,9 @@ func DeleteTask(input string) error {
 	newTasks := []Task{}
 	found := false
 
-	// Try converting input to an integer (ID)
-	id, err := strconv.Atoi(input)
+	id, err := strconv.Atoi(input) // Check if input is a number
 	for _, task := range tasks {
-		// Check by ID or by task name
-		if (err == nil && task.ID == id) || task.Text == input {
+		if (err == nil && task.ID == id) || task.Text == input { 
 			found = true
 			continue // Skip this task (delete it)
 		}

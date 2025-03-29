@@ -25,8 +25,8 @@ func MarkTaskDone(id int) error {
 }
 
 // DeleteTask removes a task
-func DeleteTask(id int) error {
-	return todo.DeleteTask(id)
+func DeleteTask(input string) error {
+	return todo.DeleteTask(input) // Pass string instead of int
 }
 
 // HandleCommands processes CLI input
@@ -68,7 +68,7 @@ func HandleCommands() {
 			return
 		}
 	
-		input := os.Args[2] // Always pass a string
+		input := os.Args[2] // Keep input as string
 		if err := DeleteTask(input); err != nil {
 			fmt.Println("Error:", err)
 		}

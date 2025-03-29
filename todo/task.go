@@ -13,6 +13,7 @@ type Task struct {
 	Text      string `json:"text"`
 	Completed bool   `json:"completed"`
 	DueDate   string `json:"due_date,omitempty"`
+	Done      bool   `json:"done"`
 }
 
 // AddTask adds a task
@@ -40,18 +41,26 @@ func ListTasks() {
 }
 
 // MarkTaskDone marks a task as completed
-func MarkTaskDone(id int) error {
+func MarkTaskDone(input string) error {
 	tasks, _ := LoadTasks()
-	for i := range tasks {
-		if tasks[i].ID == id {
-			tasks[i].Completed = true
-			return SaveTasks(tasks)
+	found := false
+
+	id, err := strconv.Atoi(input) // Try to convert input to int
+	for i, task := range tasks {
+		if (err == nil && task.ID == id) || task.Text == input {
+			tasks[i].Done = true
+			found = true
+			break
 		}
 	}
-	return fmt.Errorf("task not found")
+
+	if !found {
+		return fmt.Errorf("task not found")
+	}
+
+	return SaveTasks(tasks)
 }
 
-// DeleteTask deletes a task (✅ Ensure function name is capitalized for export)
 // DeleteTask deletes a task by ID or text
 func DeleteTask(input string) error {
 	tasks, _ := LoadTasks()
@@ -60,7 +69,7 @@ func DeleteTask(input string) error {
 
 	id, err := strconv.Atoi(input) // Check if input is a number
 	for _, task := range tasks {
-		if (err == nil && task.ID == id) || task.Text == input { 
+		if (err == nil && task.ID == id) || task.Text == input {
 			found = true
 			continue // Skip this task (delete it)
 		}
@@ -73,4 +82,3 @@ func DeleteTask(input string) error {
 
 	return SaveTasks(newTasks)
 }
-

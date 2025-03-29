@@ -4,7 +4,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 
 	"todo-cli/todo"
 )
@@ -20,8 +19,8 @@ func ListTasks() {
 }
 
 // MarkTaskDone marks a task as completed
-func MarkTaskDone(id int) error {
-	return todo.MarkTaskDone(id)
+func MarkTaskDone(input string) error {
+	return todo.MarkTaskDone(input)
 }
 
 // DeleteTask removes a task
@@ -54,11 +53,12 @@ func HandleCommands() {
 
 	case "done":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: todo done [task ID]")
+			fmt.Println("Usage: todo done [task ID or task text]")
 			return
 		}
-		id, _ := strconv.Atoi(os.Args[2]) // Fix: Ensure it's an integer
-		if err := MarkTaskDone(id); err != nil {
+
+		input := os.Args[2] // Keep as string
+		if err := MarkTaskDone(input); err != nil {
 			fmt.Println("Error:", err)
 		}
 
@@ -67,13 +67,12 @@ func HandleCommands() {
 			fmt.Println("Usage: todo delete [task ID or task text]")
 			return
 		}
-	
+
 		input := os.Args[2] // Keep input as string
 		if err := DeleteTask(input); err != nil {
 			fmt.Println("Error:", err)
 		}
-	
-	
+
 	default:
 		fmt.Println("Invalid command. Use add|list|done|delete")
 	}

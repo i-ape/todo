@@ -92,3 +92,7 @@ This project helps explore:
 🖥 Terminal UI with Bubble Tea
 
 📆 Task due dates and priorities
+
+next:
+add deadlines
+

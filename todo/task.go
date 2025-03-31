@@ -3,6 +3,7 @@ package todo
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/fatih/color"
 )
@@ -13,7 +14,6 @@ type Task struct {
 	Text      string `json:"text"`
 	Completed bool   `json:"completed"`
 	DueDate   string `json:"due_date,omitempty"`
-	Done      bool   `json:"done"`
 }
 
 // AddTask adds a task
@@ -45,10 +45,10 @@ func MarkTaskDone(input string) error {
 	tasks, _ := LoadTasks()
 	found := false
 
-	id, err := strconv.Atoi(input) // Try to convert input to int
+	id, err := strconv.Atoi(input)
 	for i, task := range tasks {
 		if (err == nil && task.ID == id) || task.Text == input {
-			tasks[i].Done = true
+			tasks[i].Completed = true 
 			found = true
 			break
 		}
@@ -60,6 +60,7 @@ func MarkTaskDone(input string) error {
 
 	return SaveTasks(tasks)
 }
+
 
 // DeleteTask deletes a task by ID or text
 func DeleteTask(input string) error {

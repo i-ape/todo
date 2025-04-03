@@ -23,6 +23,11 @@ func MarkTaskDone(input string) error {
 	return todo.MarkTaskDone(input)
 }
 
+// SetDueDate assigns a due date to a task
+func SetDueDate(input string, dueDate string) error {
+	return todo.SetDueDate(input, dueDate)
+}
+
 // DeleteTask removes a task
 func DeleteTask(input string) error {
 	return todo.DeleteTask(input) // Pass string instead of int
@@ -31,7 +36,7 @@ func DeleteTask(input string) error {
 // HandleCommands processes CLI input
 func HandleCommands() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: todo add|list|done|delete [task text or task ID]")
+		fmt.Println("Usage: todo add|list|done|delete|due [task text or task ID] [due date]")
 		return
 	}
 
@@ -56,9 +61,19 @@ func HandleCommands() {
 			fmt.Println("Usage: todo done [task ID or task text]")
 			return
 		}
-
-		input := os.Args[2] // Keep as string
+		input := os.Args[2]
 		if err := MarkTaskDone(input); err != nil {
+			fmt.Println("Error:", err)
+		}
+
+	case "due":
+		if len(os.Args) < 4 {
+			fmt.Println("Usage: todo due [task ID or task text] [YYYY-MM-DD]")
+			return
+		}
+		input := os.Args[2]
+		dueDate := os.Args[3]
+		if err := SetDueDate(input, dueDate); err != nil {
 			fmt.Println("Error:", err)
 		}
 
@@ -67,13 +82,12 @@ func HandleCommands() {
 			fmt.Println("Usage: todo delete [task ID or task text]")
 			return
 		}
-
-		input := os.Args[2] // Keep input as string
+		input := os.Args[2]
 		if err := DeleteTask(input); err != nil {
 			fmt.Println("Error:", err)
 		}
 
 	default:
-		fmt.Println("Invalid command. Use add|list|done|delete")
+		fmt.Println("Invalid command. Use add|list|done|delete|due")
 	}
 }

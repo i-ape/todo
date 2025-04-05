@@ -53,23 +53,19 @@ go mod init todo-cli
 
 go build -o todo
 
-2️⃣ Run Commands
+## Commands
 
-Add a Task
+- `todo add "task text"` — Add a new task
+- `todo list` — List all tasks
+- `todo done [task ID or text]` — Mark a task as completed
+- `todo delete [task ID or text]` — Delete a task
+- `todo due [task ID or text] [YYYY-MM-DD]` — Set a due date
 
-./todo add "Buy groceries"
-
-List Tasks
-
-./todo list
-
-Mark Task as Done
-
-./todo done 1
-
-Delete a Task
-
-./todo delete 1
+## Example
+```sh
+todo add "Finish writing blog post"
+todo due 1 2024-04-10
+todo list
 
 🎯 Learning Goals
 
@@ -92,7 +88,4 @@ This project helps explore:
 🖥 Terminal UI with Bubble Tea
 
 📆 Task due dates and priorities
-
-next:
-add deadlines
 

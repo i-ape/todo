@@ -15,7 +15,7 @@ func LoadTasks() ([]Task, error) {
 	file, err := os.ReadFile(filename)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return []Task{}, nil // Return empty list if file doesn't exist
+			return []Task{}, nil
 		}
 		return nil, err
 	}

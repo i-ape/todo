@@ -13,12 +13,15 @@ type Task struct {
 	ID        int       `json:"id"`
 	Text      string    `json:"text"`
 	Completed bool      `json:"completed"`
-	DueDate   string    `json:"due_date,omitempty"`
+	DueDate   time.Time `json:"due_date,omitempty"`
 }
 
 // AddTask adds a new task
 func AddTask(text string) error {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
 	newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false}
 	tasks = append(tasks, newTask)
 	return SaveTasks(tasks)
@@ -26,21 +29,31 @@ func AddTask(text string) error {
 
 // ListTasks displays all tasks
 func ListTasks() {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		color.Red("Error loading tasks: %v", err)
+		return
+	}
+
 	if len(tasks) == 0 {
 		color.Yellow("📭 No tasks available.")
 		return
 	}
 
+	now := time.Now()
 	for _, task := range tasks {
 		status := color.CyanString("[ ] %d: %s", task.ID, task.Text)
 		if task.Completed {
 			status = color.GreenString("[✓] %d: %s", task.ID, task.Text)
 		}
 
-		// Show due date if available
-		if task.DueDate != "" {
-			status += color.MagentaString(" (Due: %s)", task.DueDate)
+		if !task.DueDate.IsZero() {
+			dateStr := task.DueDate.Format("2006-01-02")
+			if !task.Completed && task.DueDate.Before(now) {
+				status += color.RedString(" (OVERDUE: %s)", dateStr)
+			} else {
+				status += color.MagentaString(" (Due: %s)", dateStr)
+			}
 		}
 
 		fmt.Println(status)
@@ -49,7 +62,10 @@ func ListTasks() {
 
 // MarkTaskDone marks a task as completed
 func MarkTaskDone(input string) error {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
 	found := false
 
 	id, err := strconv.Atoi(input)
@@ -70,17 +86,24 @@ func MarkTaskDone(input string) error {
 
 // SetDueDate assigns a due date to a task
 func SetDueDate(input string, dueDate string) error {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
 	found := false
 
-	id, err := strconv.Atoi(input)
+	id, parseErr := strconv.Atoi(input)
 	for i, task := range tasks {
-		if (err == nil && task.ID == id) || task.Text == input {
-			_, err := time.Parse("2006-01-02", dueDate) // Validate format
+		if (parseErr == nil && task.ID == id) || task.Text == input {
+			var parsed time.Time
+			parsed, err = time.Parse("02-01-2006", dueDate)
 			if err != nil {
-				return fmt.Errorf("invalid date format, use YYYY-MM-DD")
+				parsed, err = time.Parse("2006-01-02", dueDate)
+				if err != nil {
+					return fmt.Errorf("invalid date format, use DD-MM-YYYY or YYYY-MM-DD")
+				}
 			}
-			tasks[i].DueDate = dueDate
+			tasks[i].DueDate = parsed
 			found = true
 			break
 		}
@@ -95,15 +118,18 @@ func SetDueDate(input string, dueDate string) error {
 
 // DeleteTask removes a task by ID or text
 func DeleteTask(input string) error {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
 	newTasks := []Task{}
 	found := false
 
-	id, err := strconv.Atoi(input)
+	id, parseErr := strconv.Atoi(input)
 	for _, task := range tasks {
-		if (err == nil && task.ID == id) || task.Text == input {
+		if (parseErr == nil && task.ID == id) || task.Text == input {
 			found = true
-			continue // Skip this task (delete it)
+			continue
 		}
 		newTasks = append(newTasks, task)
 	}

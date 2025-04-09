@@ -146,3 +146,17 @@ func DeleteTask(input string) error {
 
 	return SaveTasks(newTasks)
 }
+func AddTaskWithDueDate(text, due string) error {
+    tasks, _ := LoadTasks()
+    parsed := ""
+    if due != "" {
+        d, err := parseNaturalDate(due)
+        if err != nil {
+            return err
+        }
+        parsed = d
+    }
+    newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false, DueDate: parsed}
+    tasks = append(tasks, newTask)
+    return SaveTasks(tasks)
+}

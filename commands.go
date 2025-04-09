@@ -45,14 +45,18 @@ func HandleCommands() {
 	switch cmd {
 	case "add":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: todo add [task text]")
+			fmt.Println("Usage: todo add [task text] [optional due date]")
 			return
 		}
 		text := os.Args[2]
-		if err := AddTask(text); err != nil {
+		due := ""
+		if len(os.Args) > 3 {
+			due = os.Args[3]
+		}
+		if err := todo.AddTaskWithDueDate(text, due); err != nil {
 			fmt.Println("Error:", err)
 		}
-
+	
 	case "list":
 		ListTasks()
 

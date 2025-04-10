@@ -1,4 +1,3 @@
-// commands.go
 package main
 
 import (
@@ -9,8 +8,8 @@ import (
 )
 
 // AddTask adds a new task
-func AddTask(text string) error {
-	return todo.AddTask(text)
+func AddTask(text string, due string) error {
+	return todo.AddTaskWithDueDate(text, due)
 }
 
 // ListTasks displays all tasks
@@ -30,7 +29,7 @@ func SetDueDate(input string, dueDate string) error {
 
 // DeleteTask removes a task
 func DeleteTask(input string) error {
-	return todo.DeleteTask(input) // Pass string instead of int
+	return todo.DeleteTask(input)
 }
 
 // HandleCommands processes CLI input
@@ -53,10 +52,10 @@ func HandleCommands() {
 		if len(os.Args) > 3 {
 			due = os.Args[3]
 		}
-		if err := todo.AddTaskWithDueDate(text, due); err != nil {
+		if err := AddTask(text, due); err != nil {
 			fmt.Println("Error:", err)
 		}
-	
+
 	case "list":
 		ListTasks()
 
@@ -72,7 +71,7 @@ func HandleCommands() {
 
 	case "due":
 		if len(os.Args) < 4 {
-			fmt.Println("Usage: todo due [task ID or task text] [YYYY-MM-DD]")
+			fmt.Println("Usage: todo due [task ID or task text] [YYYY-MM-DD | DD-MM-YYYY | tomorrow]")
 			return
 		}
 		input := os.Args[2]

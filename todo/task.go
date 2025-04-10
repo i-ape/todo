@@ -11,16 +11,32 @@ import (
 
 // Task struct represents a single task
 type Task struct {
-	ID        int       `json:"id"`
-	Text      string    `json:"text"`
-	Completed bool      `json:"completed"`
-	DueDate   string    `json:"due_date,omitempty"`
+	ID        int    `json:"id"`
+	Text      string `json:"text"`
+	Completed bool   `json:"completed"`
+	DueDate   string `json:"due_date,omitempty"`
 }
 
 // AddTask adds a new task
 func AddTask(text string) error {
 	tasks, _ := LoadTasks()
 	newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false}
+	tasks = append(tasks, newTask)
+	return SaveTasks(tasks)
+}
+
+// AddTaskWithDueDate adds a task with an optional due date
+func AddTaskWithDueDate(text, due string) error {
+	tasks, _ := LoadTasks()
+	parsed := ""
+	if due != "" {
+		dt, err := parseNaturalDate(due)
+		if err != nil {
+			return err
+		}
+		parsed = dt
+	}
+	newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false, DueDate: parsed}
 	tasks = append(tasks, newTask)
 	return SaveTasks(tasks)
 }
@@ -145,18 +161,4 @@ func DeleteTask(input string) error {
 	}
 
 	return SaveTasks(newTasks)
-}
-func AddTaskWithDueDate(text, due string) error {
-    tasks, _ := LoadTasks()
-    parsed := ""
-    if due != "" {
-        d, err := parseNaturalDate(due)
-        if err != nil {
-            return err
-        }
-        parsed = d
-    }
-    newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false, DueDate: parsed}
-    tasks = append(tasks, newTask)
-    return SaveTasks(tasks)
 }

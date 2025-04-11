@@ -23,6 +23,7 @@ func MarkTaskDone(input string) error {
 }
 
 // SetDueDate assigns a due date to a task
+// Supports formats like "YYYY-MM-DD", "DD-MM-YYYY", "tomorrow", "next week", "in 3 days"
 func SetDueDate(input string, dueDate string) error {
 	return todo.SetDueDate(input, dueDate)
 }
@@ -71,7 +72,7 @@ func HandleCommands() {
 
 	case "due":
 		if len(os.Args) < 4 {
-			fmt.Println("Usage: todo due [task ID or task text] [YYYY-MM-DD | DD-MM-YYYY | tomorrow]")
+			fmt.Println("Usage: todo due [task ID or task text] [date string: YYYY-MM-DD | DD-MM-YYYY | tomorrow | in 3 days]")
 			return
 		}
 		input := os.Args[2]

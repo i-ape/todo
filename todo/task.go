@@ -3,13 +3,12 @@ package todo
 import (
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/fatih/color"
 )
 
-// Task struct represents a single task
+// Task struct
 type Task struct {
 	ID        int    `json:"id"`
 	Text      string `json:"text"`
@@ -17,7 +16,7 @@ type Task struct {
 	DueDate   string `json:"due_date,omitempty"`
 }
 
-// AddTask adds a new task
+// AddTask adds a task
 func AddTask(text string) error {
 	tasks, _ := LoadTasks()
 	newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false}
@@ -50,16 +49,25 @@ func ListTasks() {
 	}
 
 	for _, task := range tasks {
-		status := color.CyanString("[ ] %d: %s", task.ID, task.Text)
+		label := fmt.Sprintf("%d: %s", task.ID, task.Text)
+		if task.DueDate != "" {
+			label += fmt.Sprintf(" (Due: %s)", task.DueDate)
+		}
+
 		if task.Completed {
-			status = color.GreenString("[✓] %d: %s", task.ID, task.Text)
+			fmt.Println(color.GreenString("[✓] %s", label))
+			continue
 		}
 
 		if task.DueDate != "" {
-			status += color.MagentaString(" (Due: %s)", task.DueDate)
+			due, err := time.Parse("2006-01-02", task.DueDate)
+			if err == nil && time.Now().After(due) {
+				fmt.Println(color.RedString("[✗] %s", label))
+				continue
+			}
 		}
 
-		fmt.Println(status)
+		fmt.Println(color.CyanString("[ ] %s", label))
 	}
 }
 
@@ -71,7 +79,7 @@ func MarkTaskDone(input string) error {
 	id, err := strconv.Atoi(input)
 	for i, task := range tasks {
 		if (err == nil && task.ID == id) || task.Text == input {
-			tasks[i].Completed = true
+			tasks[i].Completed = true 
 			found = true
 			break
 		}

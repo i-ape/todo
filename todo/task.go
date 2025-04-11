@@ -3,6 +3,7 @@ package todo
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fatih/color"

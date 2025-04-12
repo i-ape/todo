@@ -95,34 +95,53 @@ func MarkTaskDone(input string) error {
 
 // parseNaturalDate handles natural language date inputs
 func parseNaturalDate(input string) (string, error) {
-	now := time.Now()
 	input = strings.ToLower(strings.TrimSpace(input))
+	today := time.Now()
 
 	switch input {
 	case "today":
-		return now.Format("2006-01-02"), nil
+		return today.Format("2006-01-02"), nil
 	case "tomorrow":
-		return now.AddDate(0, 0, 1).Format("2006-01-02"), nil
+		return today.AddDate(0, 0, 1).Format("2006-01-02"), nil
 	case "next week":
-		return now.AddDate(0, 0, 7).Format("2006-01-02"), nil
+		return today.AddDate(0, 0, 7).Format("2006-01-02"), nil
 	case "next month":
-		return now.AddDate(0, 1, 0).Format("2006-01-02"), nil
-	case "next year":
-		return now.AddDate(1, 0, 0).Format("2006-01-02"), nil
-	default:
-		// try DD-MM-YYYY
-		t, err := time.Parse("02-01-2006", input)
-		if err == nil {
-			return t.Format("2006-01-02"), nil
-		}
-		// try YYYY-MM-DD
-		t, err = time.Parse("2006-01-02", input)
-		if err == nil {
-			return t.Format("2006-01-02"), nil
-		}
-		return "", fmt.Errorf("invalid date format or unsupported natural keyword")
+		return today.AddDate(0, 1, 0).Format("2006-01-02"), nil
 	}
+
+	if strings.HasPrefix(input, "in ") {
+		parts := strings.Split(input[3:], " ")
+		if len(parts) != 2 {
+			return "", fmt.Errorf("invalid relative date format: %s", input)
+		}
+		num, err := strconv.Atoi(parts[0])
+		if err != nil {
+			return "", fmt.Errorf("invalid number in relative date: %v", err)
+		}
+		unit := parts[1]
+		switch unit {
+		case "day", "days":
+			return today.AddDate(0, 0, num).Format("2006-01-02"), nil
+		case "week", "weeks":
+			return today.AddDate(0, 0, 7*num).Format("2006-01-02"), nil
+		case "month", "months":
+			return today.AddDate(0, num, 0).Format("2006-01-02"), nil
+		default:
+			return "", fmt.Errorf("unsupported time unit: %s", unit)
+		}
+	}
+
+	// Try standard date formats
+	formats := []string{"2006-01-02", "02-01-2006"}
+	for _, layout := range formats {
+		if t, err := time.Parse(layout, input); err == nil {
+			return t.Format("2006-01-02"), nil
+		}
+	}
+
+	return "", fmt.Errorf("could not parse date: %s", input)
 }
+
 
 // SetDueDate assigns a due date to a task
 func SetDueDate(input string, dueDate string) error {

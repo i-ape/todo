@@ -99,15 +99,22 @@ func parseNaturalDate(input string) (string, error) {
 	today := time.Now()
 
 	switch input {
-	case "today":
-		return today.Format("2006-01-02"), nil
-	case "tomorrow":
+	case "tm", "tomorrow":
 		return today.AddDate(0, 0, 1).Format("2006-01-02"), nil
-	case "next week":
+	case "nw", "next week":
 		return today.AddDate(0, 0, 7).Format("2006-01-02"), nil
-	case "next month":
+	case "nm", "next month":
 		return today.AddDate(0, 1, 0).Format("2006-01-02"), nil
+	case "ew", "end of week":
+		weekday := int(today.Weekday())
+		daysUntilSunday := 7 - weekday
+		return today.AddDate(0, 0, daysUntilSunday).Format("2006-01-02"), nil
+	case "em", "end of month":
+		firstOfNextMonth := time.Date(today.Year(), today.Month()+1, 1, 0, 0, 0, 0, today.Location())
+		endOfMonth := firstOfNextMonth.AddDate(0, 0, -1)
+		return endOfMonth.Format("2006-01-02"), nil
 	}
+	
 
 	if strings.HasPrefix(input, "in ") {
 		parts := strings.Split(input[3:], " ")

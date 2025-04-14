@@ -80,7 +80,7 @@ func MarkTaskDone(input string) error {
 	id, err := strconv.Atoi(input)
 	for i, task := range tasks {
 		if (err == nil && task.ID == id) || task.Text == input {
-			tasks[i].Completed = true 
+			tasks[i].Completed = true
 			found = true
 			break
 		}
@@ -99,22 +99,34 @@ func parseNaturalDate(input string) (string, error) {
 	today := time.Now()
 
 	switch input {
-	case "tm", "tomorrow":
+	case "tdy", "today":
+		return today.Format("2006-01-02"), nil
+	case "tmmrw", "tm", "tomorrow":
 		return today.AddDate(0, 0, 1).Format("2006-01-02"), nil
+	case "af", "after tomorrow":
+		return today.AddDate(0, 0, 2).Format("2006-01-02"), nil
+	case "yw", "yesterday":
+		return today.AddDate(0, 0, -1).Format("2006-01-02"), nil
 	case "nw", "next week":
 		return today.AddDate(0, 0, 7).Format("2006-01-02"), nil
-	case "nm", "next month":
-		return today.AddDate(0, 1, 0).Format("2006-01-02"), nil
 	case "ew", "end of week":
 		weekday := int(today.Weekday())
 		daysUntilSunday := 7 - weekday
 		return today.AddDate(0, 0, daysUntilSunday).Format("2006-01-02"), nil
+	case "nm", "next month":
+		return today.AddDate(0, 1, 0).Format("2006-01-02"), nil
 	case "em", "end of month":
 		firstOfNextMonth := time.Date(today.Year(), today.Month()+1, 1, 0, 0, 0, 0, today.Location())
 		endOfMonth := firstOfNextMonth.AddDate(0, 0, -1)
 		return endOfMonth.Format("2006-01-02"), nil
+	case "nfr", "next friday":
+		daysAhead := (5 - int(today.Weekday()) + 7) % 7
+		if daysAhead == 0 {
+			daysAhead = 7
+		}
+		return today.AddDate(0, 0, daysAhead).Format("2006-01-02"), nil
+
 	}
-	
 
 	if strings.HasPrefix(input, "in ") {
 		parts := strings.Split(input[3:], " ")
@@ -127,11 +139,11 @@ func parseNaturalDate(input string) (string, error) {
 		}
 		unit := parts[1]
 		switch unit {
-		case "day", "days":
+		case "d", "day", "days":
 			return today.AddDate(0, 0, num).Format("2006-01-02"), nil
-		case "week", "weeks":
+		case "week", "weeks", "w":
 			return today.AddDate(0, 0, 7*num).Format("2006-01-02"), nil
-		case "month", "months":
+		case "month", "months", "m":
 			return today.AddDate(0, num, 0).Format("2006-01-02"), nil
 		default:
 			return "", fmt.Errorf("unsupported time unit: %s", unit)
@@ -148,7 +160,6 @@ func parseNaturalDate(input string) (string, error) {
 
 	return "", fmt.Errorf("could not parse date: %s", input)
 }
-
 
 // SetDueDate assigns a due date to a task
 func SetDueDate(input string, dueDate string) error {

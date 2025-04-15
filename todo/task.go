@@ -99,16 +99,20 @@ func parseNaturalDate(input string) (string, error) {
 	today := time.Now()
 
 	switch input {
-	case "tdy", "today":
+	case "td", "tdy", "today":
 		return today.Format("2006-01-02"), nil
-	case "tmmrw", "tm", "tomorrow":
+	case "tm", "tmmrw", "tomorrow":
 		return today.AddDate(0, 0, 1).Format("2006-01-02"), nil
-	case "af", "after tomorrow":
+	case "af", "aft", "after tomorrow":
 		return today.AddDate(0, 0, 2).Format("2006-01-02"), nil
-	case "yw", "yesterday":
+	case "yd", "yst", "yesterday":
 		return today.AddDate(0, 0, -1).Format("2006-01-02"), nil
-	case "nw", "next week":
+	case "nw", "nxtwk", "next week":
 		return today.AddDate(0, 0, 7).Format("2006-01-02"), nil
+	case "n2w":
+		return today.AddDate(0, 0, 14).Format("2006-01-02"), nil
+	case "n3w":
+		return today.AddDate(0, 0, 21).Format("2006-01-02"), nil
 	case "ew", "end of week":
 		weekday := int(today.Weekday())
 		daysUntilSunday := 7 - weekday
@@ -119,14 +123,20 @@ func parseNaturalDate(input string) (string, error) {
 		firstOfNextMonth := time.Date(today.Year(), today.Month()+1, 1, 0, 0, 0, 0, today.Location())
 		endOfMonth := firstOfNextMonth.AddDate(0, 0, -1)
 		return endOfMonth.Format("2006-01-02"), nil
-	case "nfr", "next friday":
-		daysAhead := (5 - int(today.Weekday()) + 7) % 7
-		if daysAhead == 0 {
-			daysAhead = 7
+	case "nxtmon":
+		offset := (int(time.Monday) - int(today.Weekday()) + 7) % 7
+		if offset == 0 {
+			offset = 7
 		}
-		return today.AddDate(0, 0, daysAhead).Format("2006-01-02"), nil
-
+		return today.AddDate(0, 0, offset).Format("2006-01-02"), nil
+	case "nxfri":
+		offset := (int(time.Friday) - int(today.Weekday()) + 7) % 7
+		if offset == 0 {
+			offset = 7
+		}
+		return today.AddDate(0, 0, offset).Format("2006-01-02"), nil
 	}
+	
 
 	if strings.HasPrefix(input, "in ") {
 		parts := strings.Split(input[3:], " ")

@@ -24,7 +24,47 @@ func AddTask(text string) error {
 	tasks = append(tasks, newTask)
 	return SaveTasks(tasks)
 }
-
+// 📌 Centralized abbreviation map
+var abbreviationMap = map[string]func(time.Time) string{
+	"td": func(t time.Time) string { return t.Format("2006-01-02") },
+	"tdy": func(t time.Time) string { return t.Format("2006-01-02") },
+	"today": func(t time.Time) string { return t.Format("2006-01-02") },
+	"tm": func(t time.Time) string { return t.AddDate(0, 0, 1).Format("2006-01-02") },
+	"tmmrw": func(t time.Time) string { return t.AddDate(0, 0, 1).Format("2006-01-02") },
+	"af": func(t time.Time) string { return t.AddDate(0, 0, 2).Format("2006-01-02") },
+	"aft": func(t time.Time) string { return t.AddDate(0, 0, 2).Format("2006-01-02") },
+	"yd": func(t time.Time) string { return t.AddDate(0, 0, -1).Format("2006-01-02") },
+	"yst": func(t time.Time) string { return t.AddDate(0, 0, -1).Format("2006-01-02") },
+	"nw": func(t time.Time) string { return t.AddDate(0, 0, 7).Format("2006-01-02") },
+	"nxtwk": func(t time.Time) string { return t.AddDate(0, 0, 7).Format("2006-01-02") },
+	"n2w": func(t time.Time) string { return t.AddDate(0, 0, 14).Format("2006-01-02") },
+	"n3w": func(t time.Time) string { return t.AddDate(0, 0, 21).Format("2006-01-02") },
+	"nm": func(t time.Time) string { return t.AddDate(0, 1, 0).Format("2006-01-02") },
+	"em": func(t time.Time) string {
+		nm := time.Date(t.Year(), t.Month()+1, 1, 0, 0, 0, 0, t.Location())
+		return nm.AddDate(0, 0, -1).Format("2006-01-02")
+	},
+	"ew": func(t time.Time) string {
+		return t.AddDate(0, 0, 7-int(t.Weekday())).Format("2006-01-02")
+	},
+	"nxtmon": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Monday)).Format("2006-01-02") },
+	"nxfri": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Friday)).Format("2006-01-02") },
+	"mon": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Monday)).Format("2006-01-02") },
+	"tue": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Tuesday)).Format("2006-01-02") },
+	"wed": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Wednesday)).Format("2006-01-02") },
+	"thu": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Thursday)).Format("2006-01-02") },
+	"fri": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Friday)).Format("2006-01-02") },
+	"sat": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Saturday)).Format("2006-01-02") },
+	"sun": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Sunday)).Format("2006-01-02") },
+}
+// 📌 Calculate offset to next weekday
+func weekdayOffset(t time.Time, target time.Weekday) int {
+	offset := (int(target) - int(t.Weekday()) + 7) % 7
+	if offset == 0 {
+		offset = 7
+	}
+	return offset
+}
 // AddTaskWithDueDate adds a task with an optional due date
 func AddTaskWithDueDate(text, due string) error {
 	tasks, _ := LoadTasks()
@@ -93,50 +133,14 @@ func MarkTaskDone(input string) error {
 	return SaveTasks(tasks)
 }
 
-// parseNaturalDate handles natural language date inputs
+// Parse natural date or fallback to standard formats
 func parseNaturalDate(input string) (string, error) {
 	input = strings.ToLower(strings.TrimSpace(input))
 	today := time.Now()
 
-	switch input {
-	case "td", "tdy", "today":
-		return today.Format("2006-01-02"), nil
-	case "tm", "tmmrw", "tomorrow":
-		return today.AddDate(0, 0, 1).Format("2006-01-02"), nil
-	case "af", "aft", "after tomorrow":
-		return today.AddDate(0, 0, 2).Format("2006-01-02"), nil
-	case "yd", "yst", "yesterday":
-		return today.AddDate(0, 0, -1).Format("2006-01-02"), nil
-	case "nw", "nxtwk", "next week":
-		return today.AddDate(0, 0, 7).Format("2006-01-02"), nil
-	case "n2w":
-		return today.AddDate(0, 0, 14).Format("2006-01-02"), nil
-	case "n3w":
-		return today.AddDate(0, 0, 21).Format("2006-01-02"), nil
-	case "ew", "end of week":
-		weekday := int(today.Weekday())
-		daysUntilSunday := 7 - weekday
-		return today.AddDate(0, 0, daysUntilSunday).Format("2006-01-02"), nil
-	case "nm", "next month":
-		return today.AddDate(0, 1, 0).Format("2006-01-02"), nil
-	case "em", "end of month":
-		firstOfNextMonth := time.Date(today.Year(), today.Month()+1, 1, 0, 0, 0, 0, today.Location())
-		endOfMonth := firstOfNextMonth.AddDate(0, 0, -1)
-		return endOfMonth.Format("2006-01-02"), nil
-	case "nxtmon":
-		offset := (int(time.Monday) - int(today.Weekday()) + 7) % 7
-		if offset == 0 {
-			offset = 7
-		}
-		return today.AddDate(0, 0, offset).Format("2006-01-02"), nil
-	case "nxfri":
-		offset := (int(time.Friday) - int(today.Weekday()) + 7) % 7
-		if offset == 0 {
-			offset = 7
-		}
-		return today.AddDate(0, 0, offset).Format("2006-01-02"), nil
+	if f, ok := abbreviationMap[input]; ok {
+		return f(today), nil
 	}
-	
 
 	if strings.HasPrefix(input, "in ") {
 		parts := strings.Split(input[3:], " ")
@@ -147,30 +151,26 @@ func parseNaturalDate(input string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("invalid number in relative date: %v", err)
 		}
-		unit := parts[1]
-		switch unit {
+		switch parts[1] {
 		case "d", "day", "days":
 			return today.AddDate(0, 0, num).Format("2006-01-02"), nil
-		case "week", "weeks", "w":
+		case "w", "week", "weeks":
 			return today.AddDate(0, 0, 7*num).Format("2006-01-02"), nil
-		case "month", "months", "m":
+		case "m", "month", "months":
 			return today.AddDate(0, num, 0).Format("2006-01-02"), nil
 		default:
-			return "", fmt.Errorf("unsupported time unit: %s", unit)
+			return "", fmt.Errorf("unsupported unit: %s", parts[1])
 		}
 	}
 
-	// Try standard date formats
-	formats := []string{"2006-01-02", "02-01-2006"}
-	for _, layout := range formats {
-		if t, err := time.Parse(layout, input); err == nil {
+	for _, format := range []string{"2006-01-02", "02-01-2006"} {
+		if t, err := time.Parse(format, input); err == nil {
 			return t.Format("2006-01-02"), nil
 		}
 	}
 
 	return "", fmt.Errorf("could not parse date: %s", input)
 }
-
 // SetDueDate assigns a due date to a task
 func SetDueDate(input string, dueDate string) error {
 	tasks, _ := LoadTasks()

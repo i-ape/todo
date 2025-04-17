@@ -24,22 +24,26 @@ func AddTask(text string) error {
 	tasks = append(tasks, newTask)
 	return SaveTasks(tasks)
 }
+
 // 📌 Centralized abbreviation map
 var abbreviationMap = map[string]func(time.Time) string{
-	"td": func(t time.Time) string { return t.Format("2006-01-02") },
-	"tdy": func(t time.Time) string { return t.Format("2006-01-02") },
-	"today": func(t time.Time) string { return t.Format("2006-01-02") },
-	"tm": func(t time.Time) string { return t.AddDate(0, 0, 1).Format("2006-01-02") },
-	"tmmrw": func(t time.Time) string { return t.AddDate(0, 0, 1).Format("2006-01-02") },
-	"af": func(t time.Time) string { return t.AddDate(0, 0, 2).Format("2006-01-02") },
-	"aft": func(t time.Time) string { return t.AddDate(0, 0, 2).Format("2006-01-02") },
-	"yd": func(t time.Time) string { return t.AddDate(0, 0, -1).Format("2006-01-02") },
-	"yst": func(t time.Time) string { return t.AddDate(0, 0, -1).Format("2006-01-02") },
-	"nw": func(t time.Time) string { return t.AddDate(0, 0, 7).Format("2006-01-02") },
-	"nxtwk": func(t time.Time) string { return t.AddDate(0, 0, 7).Format("2006-01-02") },
-	"n2w": func(t time.Time) string { return t.AddDate(0, 0, 14).Format("2006-01-02") },
-	"n3w": func(t time.Time) string { return t.AddDate(0, 0, 21).Format("2006-01-02") },
-	"nm": func(t time.Time) string { return t.AddDate(0, 1, 0).Format("2006-01-02") },
+	"td":      func(t time.Time) string { return t.Format("2006-01-02") },
+	"tdy":     func(t time.Time) string { return t.Format("2006-01-02") },
+	"today":   func(t time.Time) string { return t.Format("2006-01-02") },
+	"tm":      func(t time.Time) string { return t.AddDate(0, 0, 1).Format("2006-01-02") },
+	"tmmrw":   func(t time.Time) string { return t.AddDate(0, 0, 1).Format("2006-01-02") },
+	"af":      func(t time.Time) string { return t.AddDate(0, 0, 2).Format("2006-01-02") },
+	"aft":     func(t time.Time) string { return t.AddDate(0, 0, 2).Format("2006-01-02") },
+	"yd":      func(t time.Time) string { return t.AddDate(0, 0, -1).Format("2006-01-02") },
+	"yst":     func(t time.Time) string { return t.AddDate(0, 0, -1).Format("2006-01-02") },
+	"nw":      func(t time.Time) string { return t.AddDate(0, 0, 7).Format("2006-01-02") },
+	"nxtwk":   func(t time.Time) string { return t.AddDate(0, 0, 7).Format("2006-01-02") },
+	"n2w":     func(t time.Time) string { return t.AddDate(0, 0, 14).Format("2006-01-02") },
+	"n3w":     func(t time.Time) string { return t.AddDate(0, 0, 21).Format("2006-01-02") },
+	"eod":     func(t time.Time) string { return t.Format("2006-01-02") },
+	"someday": func(t time.Time) string { return "" },
+	"soon":    func(t time.Time) string { return t.AddDate(0, 0, 3).Format("2006-01-02") },
+	"nm":      func(t time.Time) string { return t.AddDate(0, 1, 0).Format("2006-01-02") },
 	"em": func(t time.Time) string {
 		nm := time.Date(t.Year(), t.Month()+1, 1, 0, 0, 0, 0, t.Location())
 		return nm.AddDate(0, 0, -1).Format("2006-01-02")
@@ -48,15 +52,18 @@ var abbreviationMap = map[string]func(time.Time) string{
 		return t.AddDate(0, 0, 7-int(t.Weekday())).Format("2006-01-02")
 	},
 	"nxtmon": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Monday)).Format("2006-01-02") },
-	"nxfri": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Friday)).Format("2006-01-02") },
-	"mon": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Monday)).Format("2006-01-02") },
-	"tue": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Tuesday)).Format("2006-01-02") },
-	"wed": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Wednesday)).Format("2006-01-02") },
+	"nxfri":  func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Friday)).Format("2006-01-02") },
+	"mon":    func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Monday)).Format("2006-01-02") },
+	"tue":    func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Tuesday)).Format("2006-01-02") },
+	"wed": func(t time.Time) string {
+		return t.AddDate(0, 0, weekdayOffset(t, time.Wednesday)).Format("2006-01-02")
+	},
 	"thu": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Thursday)).Format("2006-01-02") },
 	"fri": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Friday)).Format("2006-01-02") },
 	"sat": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Saturday)).Format("2006-01-02") },
 	"sun": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Sunday)).Format("2006-01-02") },
 }
+
 // 📌 Calculate offset to next weekday
 func weekdayOffset(t time.Time, target time.Weekday) int {
 	offset := (int(target) - int(t.Weekday()) + 7) % 7
@@ -65,6 +72,7 @@ func weekdayOffset(t time.Time, target time.Weekday) int {
 	}
 	return offset
 }
+
 // AddTaskWithDueDate adds a task with an optional due date
 func AddTaskWithDueDate(text, due string) error {
 	tasks, _ := LoadTasks()
@@ -171,6 +179,7 @@ func parseNaturalDate(input string) (string, error) {
 
 	return "", fmt.Errorf("could not parse date: %s", input)
 }
+
 // SetDueDate assigns a due date to a task
 func SetDueDate(input string, dueDate string) error {
 	tasks, _ := LoadTasks()

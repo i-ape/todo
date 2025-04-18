@@ -25,53 +25,87 @@ func AddTask(text string) error {
 	return SaveTasks(tasks)
 }
 
-// 📌 Centralized abbreviation map
+// 📌 Centralized abbreviation map — natural language → date string
 var abbreviationMap = map[string]func(time.Time) string{
-	"td":      func(t time.Time) string { return t.Format("2006-01-02") },
-	"tdy":     func(t time.Time) string { return t.Format("2006-01-02") },
-	"today":   func(t time.Time) string { return t.Format("2006-01-02") },
-	"tm":      func(t time.Time) string { return t.AddDate(0, 0, 1).Format("2006-01-02") },
-	"tmmrw":   func(t time.Time) string { return t.AddDate(0, 0, 1).Format("2006-01-02") },
-	"af":      func(t time.Time) string { return t.AddDate(0, 0, 2).Format("2006-01-02") },
-	"aft":     func(t time.Time) string { return t.AddDate(0, 0, 2).Format("2006-01-02") },
-	"yd":      func(t time.Time) string { return t.AddDate(0, 0, -1).Format("2006-01-02") },
-	"yst":     func(t time.Time) string { return t.AddDate(0, 0, -1).Format("2006-01-02") },
-	"nw":      func(t time.Time) string { return t.AddDate(0, 0, 7).Format("2006-01-02") },
-	"nxtwk":   func(t time.Time) string { return t.AddDate(0, 0, 7).Format("2006-01-02") },
-	"n2w":     func(t time.Time) string { return t.AddDate(0, 0, 14).Format("2006-01-02") },
-	"n3w":     func(t time.Time) string { return t.AddDate(0, 0, 21).Format("2006-01-02") },
-	"eod":     func(t time.Time) string { return t.Format("2006-01-02") },
-	"someday": func(t time.Time) string { return "" },
-	"soon":    func(t time.Time) string { return t.AddDate(0, 0, 3).Format("2006-01-02") },
-	"nm":      func(t time.Time) string { return t.AddDate(0, 1, 0).Format("2006-01-02") },
-	"em": func(t time.Time) string {
-		nm := time.Date(t.Year(), t.Month()+1, 1, 0, 0, 0, 0, t.Location())
-		return nm.AddDate(0, 0, -1).Format("2006-01-02")
-	},
+	// 📅 Absolute terms
+	"td":       formatToday,
+	"tdy":      formatToday,
+	"today":    formatToday,
+	"tm":       inDays(1),
+	"tmmrw":    inDays(1),
+	"next":     inDays(1),
+	"af":       inDays(2),
+	"aft":      inDays(2),
+	"yd":       inDays(-1),
+	"yst":      inDays(-1),
+	"soon":     inDays(3),
+	"later":    inDays(7),
+	"someday":  func(t time.Time) string { return "" },
+	"now":      formatToday,
+
+	// 📆 Weeks
+	"nw":       inDays(7),
+	"nxtwk":    inDays(7),
+	"n2w":      inDays(14),
+	"n3w":      inDays(21),
+	"eowk":     nextWeekday(time.Friday),
+
+	// 📅 Months
+	"nm":       inMonths(1),
+	"em":       endOfMonth,
+
+	// 🕐 Time-based
+	"eod":      formatToday, // End of day = today, could change later
+
+	// 🗓️ Weekdays (next occurrence)
+	"mon":      nextWeekday(time.Monday),
+	"tue":      nextWeekday(time.Tuesday),
+	"wed":      nextWeekday(time.Wednesday),
+	"thu":      nextWeekday(time.Thursday),
+	"fri":      nextWeekday(time.Friday),
+	"sat":      nextWeekday(time.Saturday),
+	"sun":      nextWeekday(time.Sunday),
+
+	"nxtmon":   nextWeekday(time.Monday),
+	"nxfri":    nextWeekday(time.Friday),
+
+	// 📅 End of current week
 	"ew": func(t time.Time) string {
 		return t.AddDate(0, 0, 7-int(t.Weekday())).Format("2006-01-02")
 	},
-	"nxtmon": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Monday)).Format("2006-01-02") },
-	"nxfri":  func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Friday)).Format("2006-01-02") },
-	"mon":    func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Monday)).Format("2006-01-02") },
-	"tue":    func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Tuesday)).Format("2006-01-02") },
-	"wed": func(t time.Time) string {
-		return t.AddDate(0, 0, weekdayOffset(t, time.Wednesday)).Format("2006-01-02")
-	},
-	"thu": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Thursday)).Format("2006-01-02") },
-	"fri": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Friday)).Format("2006-01-02") },
-	"sat": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Saturday)).Format("2006-01-02") },
-	"sun": func(t time.Time) string { return t.AddDate(0, 0, weekdayOffset(t, time.Sunday)).Format("2006-01-02") },
 }
 
-// 📌 Calculate offset to next weekday
-func weekdayOffset(t time.Time, target time.Weekday) int {
-	offset := (int(target) - int(t.Weekday()) + 7) % 7
-	if offset == 0 {
-		offset = 7
-	}
-	return offset
+func formatToday(t time.Time) string {
+	return t.Format("2006-01-02")
 }
+
+func inDays(n int) func(time.Time) string {
+	return func(t time.Time) string {
+		return t.AddDate(0, 0, n).Format("2006-01-02")
+	}
+}
+
+func inMonths(n int) func(time.Time) string {
+	return func(t time.Time) string {
+		return t.AddDate(0, n, 0).Format("2006-01-02")
+	}
+}
+
+func endOfMonth(t time.Time) string {
+	firstNext := time.Date(t.Year(), t.Month()+1, 1, 0, 0, 0, 0, t.Location())
+	return firstNext.AddDate(0, 0, -1).Format("2006-01-02")
+}
+
+func nextWeekday(wd time.Weekday) func(time.Time) string {
+	return func(t time.Time) string {
+		offset := (int(wd) - int(t.Weekday()) + 7) % 7
+		if offset == 0 {
+			offset = 7
+		}
+		return t.AddDate(0, 0, offset).Format("2006-01-02")
+	}
+}
+
 
 // AddTaskWithDueDate adds a task with an optional due date
 func AddTaskWithDueDate(text, due string) error {

@@ -261,3 +261,22 @@ func DeleteTask(input string) error {
 
 	return SaveTasks(newTasks)
 }
+// ClearTasks deletes all tasks (empties the task list)
+func ClearTasks() {
+	_ = SaveTasks([]Task{})
+}
+
+// SearchTasks displays tasks that contain a keyword
+func SearchTasks(keyword string) {
+	tasks, _ := LoadTasks()
+	matched := false
+	for _, task := range tasks {
+		if strings.Contains(strings.ToLower(task.Text), strings.ToLower(keyword)) {
+			fmt.Printf("🔎 [%d] %s\n", task.ID, task.Text)
+			matched = true
+		}
+	}
+	if !matched {
+		fmt.Println("🔍 No matching tasks found.")
+	}
+}

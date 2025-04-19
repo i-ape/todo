@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"todo-cli/todo"
 )
@@ -33,14 +34,32 @@ func DeleteTask(input string) error {
 	return todo.DeleteTask(input)
 }
 
+func ClearTasks() {
+	todo.ClearTasks()
+	fmt.Println("✅ All tasks cleared.")
+}
+
+func ResetTasks() {
+	err := os.Remove("todo/tasks.json")
+	if err != nil {
+		fmt.Println("⚠️ Reset failed:", err)
+	} else {
+		fmt.Println("🗑️  tasks.json deleted.")
+	}
+}
+
+func SearchTasks(keyword string) {
+	todo.SearchTasks(keyword)
+}
+
 // HandleCommands processes CLI input
 func HandleCommands() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: todo add|list|done|delete|due [task text or task ID] [due date]")
+		printHelp()
 		return
 	}
 
-	cmd := os.Args[1]
+	cmd := strings.ToLower(os.Args[1])
 
 	switch cmd {
 	case "add":
@@ -65,33 +84,59 @@ func HandleCommands() {
 			fmt.Println("Usage: todo done [task ID or task text]")
 			return
 		}
-		input := os.Args[2]
-		if err := MarkTaskDone(input); err != nil {
+		if err := MarkTaskDone(os.Args[2]); err != nil {
 			fmt.Println("Error:", err)
 		}
 
 	case "due":
 		if len(os.Args) < 4 {
-			fmt.Println("Usage: todo due [task ID or task text] [date string: YYYY-MM-DD | DD-MM-YYYY | tomorrow | in 3 days]")
+			fmt.Println("Usage: todo due [task ID or task text] [due date]")
 			return
 		}
-		input := os.Args[2]
-		dueDate := os.Args[3]
-		if err := SetDueDate(input, dueDate); err != nil {
+		if err := SetDueDate(os.Args[2], os.Args[3]); err != nil {
 			fmt.Println("Error:", err)
 		}
 
-	case "delete":
+	case "delete", "rm":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: todo delete [task ID or task text]")
 			return
 		}
-		input := os.Args[2]
-		if err := DeleteTask(input); err != nil {
+		if err := DeleteTask(os.Args[2]); err != nil {
 			fmt.Println("Error:", err)
 		}
 
+	case "clear":
+		ClearTasks()
+
+	case "reset":
+		ResetTasks()
+
+	case "search":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: todo search [keyword]")
+			return
+		}
+		SearchTasks(os.Args[2])
+
+	case "help":
+		printHelp()
+
 	default:
-		fmt.Println("Invalid command. Use add|list|done|delete|due")
+		fmt.Println("❌ Invalid command.")
+		printHelp()
 	}
+}
+
+func printHelp() {
+	fmt.Println(`📝 Usage:
+  todo add [text] [due?]       → Add new task
+  todo list                    → List all tasks
+  todo done [id|text]          → Mark task done
+  todo due [id|text] [date]    → Set/change due date
+  todo delete [id|text]        → Delete task
+  todo search [keyword]        → Search task text
+  todo clear                   → Clear all tasks
+  todo reset                   → Delete tasks.json
+  todo help                    → Show help`)
 }

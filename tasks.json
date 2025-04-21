@@ -18,5 +18,11 @@
     "id": 4,
     "text": "Write documentation",
     "completed": false
+  },
+  {
+    "id": 5,
+    "text": "Push code to GitHub",
+    "completed": false,
+    "due_date": "2025-04-22"
   }
 ]

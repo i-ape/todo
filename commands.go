@@ -75,6 +75,7 @@ func HandleCommands() {
 		if err := AddTask(text, due); err != nil {
 			fmt.Println("Error:", err)
 		}
+	
 
 	case "list":
 		ListTasks()
@@ -90,12 +91,15 @@ func HandleCommands() {
 
 	case "due":
 		if len(os.Args) < 4 {
-			fmt.Println("Usage: todo due [task ID or task text] [due date]")
+			fmt.Println("Usage: todo due [task ID or task text] [date string]")
 			return
 		}
-		if err := SetDueDate(os.Args[2], os.Args[3]); err != nil {
+		input := os.Args[2]
+		dueDate := strings.Join(os.Args[3:], " ") // ✅ Fix multi-word due date
+		if err := SetDueDate(input, dueDate); err != nil {
 			fmt.Println("Error:", err)
 		}
+	
 
 	case "delete", "rm":
 		if len(os.Args) < 3 {

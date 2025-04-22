@@ -16,13 +16,26 @@ It covers:
 - Command-line arguments processing
 - Basic concurrency concepts (can be extended)
 
-## 🚀 Features
 
-- ✅ Add new tasks  
-- 📋 List all tasks  
-- ✔️ Mark tasks as completed  
-- ❌ Delete tasks  
-- 💾 Persistent storage using `tasks.json`  
+## Features
+
+- Add tasks with optional due dates
+- Support for **natural language dates** (e.g. `tomorrow`, `in 3 days`, `fri`)
+- Mark tasks as complete
+- Edit due dates after creation
+- Delete or clear tasks
+- Search by keyword
+- Reset/delete the entire task database
+- Color-coded task listing (due, overdue, complete)
+
+---
+
+## Installation
+
+```bash
+go build -o todo-cli
+chmod +x todo-cli
+./todo-cli list
 
 ## 📂 Project Structure
 

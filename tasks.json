@@ -24,5 +24,11 @@
     "text": "Push code to GitHub",
     "completed": false,
     "due_date": "2025-04-22"
+  },
+  {
+    "id": 6,
+    "text": "Push code to GitHub",
+    "completed": false,
+    "due_date": "2025-04-24"
   }
 ]

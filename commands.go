@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"todo-cli/todo"
+	"todo/todo"
 )
 
 // AddTask adds a new task

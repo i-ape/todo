@@ -1,4 +1,4 @@
-# todo-cli
+# todo
 
 i wanna get good at go since typescript uses it :)
 

@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"todo/todo"
+	"todo/todo.int"
 )
 
 // AddTask adds a new task

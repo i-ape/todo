@@ -16,7 +16,6 @@ It covers:
 - Command-line arguments processing
 - Basic concurrency concepts (can be extended)
 
-
 ## Features
 
 - Add tasks with optional due dates
@@ -53,12 +52,12 @@ todo-cli/
 2. Clone this repository:
 
    ```sh
-   git clone https://github.com/i-ape/todo-cli.git
-   cd todo-cli
+   git clone https://github.com/i-ape/todo.git
+   cd todo
 
 3. Initialize Go module:
 
-go mod init todo-cli
+go mod init todo
 
 🏃 Usage
 
@@ -68,11 +67,14 @@ go build -o todo
 
 ## Commands
 
-- `todo add "task text"` — Add a new task
-- `todo list` — List all tasks
-- `todo done [task ID or text]` — Mark a task as completed
-- `todo delete [task ID or text]` — Delete a task
-- `todo due [task ID or text] [YYYY-MM-DD]` — Set a due date
+- todo add "Write blog post"
+- todo add "Submit tax return" tomorrow
+- todo list
+- todo done 1
+- todo due 2 fri
+- todo search "blog"
+- todo delete 1
+- todo clear
 
 ## Example
 ```sh

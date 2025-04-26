@@ -25,86 +25,7 @@ func AddTask(text string) error {
 	return SaveTasks(tasks)
 }
 
-// 📌 Centralized abbreviation map — natural language → date string
-var abbreviationMap = map[string]func(time.Time) string{
-	// 📅 Absolute terms
-	"td":       formatToday,
-	"tdy":      formatToday,
-	"today":    formatToday,
-	"tm":       inDays(1),
-	"tmmrw":    inDays(1),
-	"next":     inDays(1),
-	"af":       inDays(2),
-	"aft":      inDays(2),
-	"yd":       inDays(-1),
-	"yst":      inDays(-1),
-	"soon":     inDays(3),
-	"later":    inDays(7),
-	"someday":  func(t time.Time) string { return "" },
-	"now":      formatToday,
 
-	// 📆 Weeks
-	"nw":       inDays(7),
-	"nxtwk":    inDays(7),
-	"n2w":      inDays(14),
-	"n3w":      inDays(21),
-	"eowk":     nextWeekday(time.Friday),
-
-	// 📅 Months
-	"nm":       inMonths(1),
-	"em":       endOfMonth,
-
-	// 🕐 Time-based
-	"eod":      formatToday, // End of day = today, could change later
-
-	// 🗓️ Weekdays (next occurrence)
-	"mon":      nextWeekday(time.Monday),
-	"tue":      nextWeekday(time.Tuesday),
-	"wed":      nextWeekday(time.Wednesday),
-	"thu":      nextWeekday(time.Thursday),
-	"fri":      nextWeekday(time.Friday),
-	"sat":      nextWeekday(time.Saturday),
-	"sun":      nextWeekday(time.Sunday),
-
-	"nxtmon":   nextWeekday(time.Monday),
-	"nxfri":    nextWeekday(time.Friday),
-
-	// 📅 End of current week
-	"ew": func(t time.Time) string {
-		return t.AddDate(0, 0, 7-int(t.Weekday())).Format("2006-01-02")
-	},
-}
-
-func formatToday(t time.Time) string {
-	return t.Format("2006-01-02")
-}
-
-func inDays(n int) func(time.Time) string {
-	return func(t time.Time) string {
-		return t.AddDate(0, 0, n).Format("2006-01-02")
-	}
-}
-
-func inMonths(n int) func(time.Time) string {
-	return func(t time.Time) string {
-		return t.AddDate(0, n, 0).Format("2006-01-02")
-	}
-}
-
-func endOfMonth(t time.Time) string {
-	firstNext := time.Date(t.Year(), t.Month()+1, 1, 0, 0, 0, 0, t.Location())
-	return firstNext.AddDate(0, 0, -1).Format("2006-01-02")
-}
-
-func nextWeekday(wd time.Weekday) func(time.Time) string {
-	return func(t time.Time) string {
-		offset := (int(wd) - int(t.Weekday()) + 7) % 7
-		if offset == 0 {
-			offset = 7
-		}
-		return t.AddDate(0, 0, offset).Format("2006-01-02")
-	}
-}
 
 
 // AddTaskWithDueDate adds a task with an optional due date
@@ -112,7 +33,7 @@ func AddTaskWithDueDate(text, due string) error {
 	tasks, _ := LoadTasks()
 	parsed := ""
 	if due != "" {
-		dt, err := parseNaturalDate(due)
+		dt, err := ParseNaturalDate(due)
 		if err != nil {
 			return err
 		}
@@ -175,51 +96,13 @@ func MarkTaskDone(input string) error {
 	return SaveTasks(tasks)
 }
 
-// Parse natural date or fallback to standard formats
-func parseNaturalDate(input string) (string, error) {
-	input = strings.ToLower(strings.TrimSpace(input))
-	today := time.Now()
-
-	if f, ok := abbreviationMap[input]; ok {
-		return f(today), nil
-	}
-
-	if strings.HasPrefix(input, "in ") {
-		parts := strings.Split(input[3:], " ")
-		if len(parts) != 2 {
-			return "", fmt.Errorf("invalid relative date format: %s", input)
-		}
-		num, err := strconv.Atoi(parts[0])
-		if err != nil {
-			return "", fmt.Errorf("invalid number in relative date: %v", err)
-		}
-		switch parts[1] {
-		case "d", "day", "days":
-			return today.AddDate(0, 0, num).Format("2006-01-02"), nil
-		case "w", "week", "weeks":
-			return today.AddDate(0, 0, 7*num).Format("2006-01-02"), nil
-		case "m", "month", "months":
-			return today.AddDate(0, num, 0).Format("2006-01-02"), nil
-		default:
-			return "", fmt.Errorf("unsupported unit: %s", parts[1])
-		}
-	}
-
-	for _, format := range []string{"2006-01-02", "02-01-2006"} {
-		if t, err := time.Parse(format, input); err == nil {
-			return t.Format("2006-01-02"), nil
-		}
-	}
-
-	return "", fmt.Errorf("could not parse date: %s", input)
-}
 
 // SetDueDate assigns a due date to a task
 func SetDueDate(input string, dueDate string) error {
 	tasks, _ := LoadTasks()
 	found := false
 
-	parsedDate, err := parseNaturalDate(dueDate)
+	parsedDate, err := ParseNaturalDate(dueDate)
 	if err != nil {
 		return err
 	}
@@ -239,6 +122,23 @@ func SetDueDate(input string, dueDate string) error {
 
 	return SaveTasks(tasks)
 }
+func EditTaskText(input, newText string) error {
+	tasks, _ := LoadTasks()
+	found := false
+	id, err := strconv.Atoi(input)
+	for i := range tasks {
+		if (err == nil && tasks[i].ID == id) || tasks[i].Text == input {
+			tasks[i].Text = newText
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("task not found")
+	}
+	return SaveTasks(tasks)
+}
+
 
 // DeleteTask removes a task by ID or text
 func DeleteTask(input string) error {

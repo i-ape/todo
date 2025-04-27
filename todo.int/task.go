@@ -19,70 +19,81 @@ type Task struct {
 
 // AddTask adds a task
 func AddTask(text string) error {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
 	newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false}
 	tasks = append(tasks, newTask)
 	return SaveTasks(tasks)
 }
 
-
-
-
 // AddTaskWithDueDate adds a task with an optional due date
 func AddTaskWithDueDate(text, due string) error {
-	tasks, _ := LoadTasks()
-	parsed := ""
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
+	parsedDue := ""
 	if due != "" {
-		dt, err := ParseNaturalDate(due)
+		parsedDue, err = ParseNaturalDate(due)
 		if err != nil {
 			return err
 		}
-		parsed = dt
 	}
-	newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false, DueDate: parsed}
+	newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false, DueDate: parsedDue}
 	tasks = append(tasks, newTask)
 	return SaveTasks(tasks)
 }
 
 // ListTasks displays all tasks
 func ListTasks() {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		color.Red("Failed to load tasks: %v", err)
+		return
+	}
 	if len(tasks) == 0 {
 		color.Yellow("📭 No tasks available.")
 		return
 	}
 
 	for _, task := range tasks {
-		label := fmt.Sprintf("%d: %s", task.ID, task.Text)
-		if task.DueDate != "" {
-			label += fmt.Sprintf(" (Due: %s)", task.DueDate)
-		}
+		displayTask(task)
+	}
+}
 
-		if task.Completed {
-			fmt.Println(color.GreenString("[✓] %s", label))
-			continue
-		}
-
-		if task.DueDate != "" {
-			due, err := time.Parse("2006-01-02", task.DueDate)
-			if err == nil && time.Now().After(due) {
-				fmt.Println(color.RedString("[✗] %s", label))
-				continue
-			}
-		}
-
+func displayTask(task Task) {
+	label := fmt.Sprintf("%d: %s", task.ID, task.Text)
+	if task.DueDate != "" {
+		label += fmt.Sprintf(" (Due: %s)", task.DueDate)
+	}
+	if task.Completed {
+		fmt.Println(color.GreenString("[✓] %s", label))
+	} else if task.DueDate != "" && isOverdue(task.DueDate) {
+		fmt.Println(color.RedString("[✗] %s", label))
+	} else {
 		fmt.Println(color.CyanString("[ ] %s", label))
 	}
 }
 
+// isOverdue marks a task as past due date
+func isOverdue(dueDate string) bool {
+	due, err := time.Parse("2006-01-02", dueDate)
+	return err == nil && time.Now().After(due)
+}
+
 // MarkTaskDone marks a task as completed
 func MarkTaskDone(input string) error {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
 	found := false
+	id, idErr := strconv.Atoi(input)
 
-	id, err := strconv.Atoi(input)
 	for i, task := range tasks {
-		if (err == nil && task.ID == id) || task.Text == input {
+		if (idErr == nil && task.ID == id) || task.Text == input {
 			tasks[i].Completed = true
 			found = true
 			break
@@ -92,24 +103,26 @@ func MarkTaskDone(input string) error {
 	if !found {
 		return fmt.Errorf("task not found")
 	}
-
 	return SaveTasks(tasks)
 }
 
 
 // SetDueDate assigns a due date to a task
 func SetDueDate(input string, dueDate string) error {
-	tasks, _ := LoadTasks()
-	found := false
-
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
 	parsedDate, err := ParseNaturalDate(dueDate)
 	if err != nil {
 		return err
 	}
 
-	id, err := strconv.Atoi(input)
+	found := false
+	id, idErr := strconv.Atoi(input)
+
 	for i, task := range tasks {
-		if (err == nil && task.ID == id) || task.Text == input {
+		if (idErr == nil && task.ID == id) || task.Text == input {
 			tasks[i].DueDate = parsedDate
 			found = true
 			break
@@ -119,20 +132,25 @@ func SetDueDate(input string, dueDate string) error {
 	if !found {
 		return fmt.Errorf("task not found")
 	}
-
 	return SaveTasks(tasks)
 }
+
 func EditTaskText(input, newText string) error {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
 	found := false
-	id, err := strconv.Atoi(input)
-	for i := range tasks {
-		if (err == nil && tasks[i].ID == id) || tasks[i].Text == input {
+	id, idErr := strconv.Atoi(input)
+
+	for i, task := range tasks {
+		if (idErr == nil && task.ID == id) || task.Text == input {
 			tasks[i].Text = newText
 			found = true
 			break
 		}
 	}
+
 	if !found {
 		return fmt.Errorf("task not found")
 	}
@@ -142,13 +160,17 @@ func EditTaskText(input, newText string) error {
 
 // DeleteTask removes a task by ID or text
 func DeleteTask(input string) error {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
+
 	newTasks := []Task{}
 	found := false
+	id, idErr := strconv.Atoi(input)
 
-	id, err := strconv.Atoi(input)
 	for _, task := range tasks {
-		if (err == nil && task.ID == id) || task.Text == input {
+		if (idErr == nil && task.ID == id) || task.Text == input {
 			found = true
 			continue
 		}
@@ -158,17 +180,21 @@ func DeleteTask(input string) error {
 	if !found {
 		return fmt.Errorf("task not found")
 	}
-
 	return SaveTasks(newTasks)
 }
-// ClearTasks deletes all tasks (empties the task list)
-func ClearTasks() {
-	_ = SaveTasks([]Task{})
+
+func ClearTasks() error {
+	return SaveTasks([]Task{})
 }
 
 // SearchTasks displays tasks that contain a keyword
 func SearchTasks(keyword string) {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		color.Red("Failed to load tasks: %v", err)
+		return
+	}
+
 	matched := false
 	for _, task := range tasks {
 		if strings.Contains(strings.ToLower(task.Text), strings.ToLower(keyword)) {

@@ -82,25 +82,30 @@ todo add "Finish writing blog post"
 todo due 1 2024-04-10
 todo list
 
-🎯 Learning Goals
+🧠 Learning Goals
 
-This project helps explore:
+✅ Structs & methods
 
-🏗 Structs & Methods
+✅ File I/O with JSON
 
-📂 File I/O with JSON
+✅ Command-line tools
 
-⚡ Concurrency (future enhancement)
+✅ Natural language date parsing
 
-🖥 Command-line tools in Go
+⏳ Potential: concurrency, custom date DSL, Bubble Tea UI
 
-🔮 Future Enhancements
 
-🏗 Better CLI handling with Cobra
 
-🎨 Colored output for better readability
+---
 
-🖥 Terminal UI with Bubble Tea
+🔮 Future Ideas
 
-📆 Task due dates and priorities
+Cobra or urfave CLI parser
 
+Task priorities
+
+Tags & filters
+
+Weekly/agenda views
+
+Notification integrations

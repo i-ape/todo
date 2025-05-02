@@ -15,6 +15,7 @@ type Task struct {
 	Text      string `json:"text"`
 	Completed bool   `json:"completed"`
 	DueDate   string `json:"due_date,omitempty"`
+	Recurring string `json:"recurring,omitempty"`
 }
 
 // AddTask adds a task
@@ -30,21 +31,39 @@ func AddTask(text string) error {
 
 // AddTaskWithDueDate adds a task with an optional due date
 func AddTaskWithDueDate(text, due string) error {
-	tasks, err := LoadTasks()
-	if err != nil {
-		return err
-	}
-	parsedDue := ""
+	tasks, _ := LoadTasks()
+	parsed := ""
+	recurring := ""
+
 	if due != "" {
-		parsedDue, err = ParseNaturalDate(due)
-		if err != nil {
-			return err
+		// Check if it's a known recurring keyword
+		lower := strings.ToLower(due)
+		switch lower {
+		case "daily", "weekly", "monthly", "yearly",
+			"every monday", "every friday":
+			recurring = lower
+		default:
+			// Not recurring? Try parsing as date
+			dt, err := ParseNaturalDate(due)
+			if err != nil {
+				return err
+			}
+			parsed = dt
 		}
 	}
-	newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false, DueDate: parsedDue}
+
+	newTask := Task{
+		ID:        len(tasks) + 1,
+		Text:      text,
+		Completed: false,
+		DueDate:   parsed,
+		Recurring: recurring,
+	}
+
 	tasks = append(tasks, newTask)
 	return SaveTasks(tasks)
 }
+
 
 // ListTasks displays all tasks
 func ListTasks() {
@@ -59,29 +78,31 @@ func ListTasks() {
 	}
 
 	for _, task := range tasks {
-		displayTask(task)
-	}
-}
+		label := fmt.Sprintf("%d: %s", task.ID, task.Text)
+		if task.DueDate != "" {
+			label += fmt.Sprintf(" (Due: %s)", task.DueDate)
+		}
+		if task.Recurring != "" {
+			label += color.MagentaString(" (Repeats: %s)", task.Recurring)
+		}
 
-func displayTask(task Task) {
-	label := fmt.Sprintf("%d: %s", task.ID, task.Text)
-	if task.DueDate != "" {
-		label += fmt.Sprintf(" (Due: %s)", task.DueDate)
-	}
-	if task.Completed {
-		fmt.Println(color.GreenString("[✓] %s", label))
-	} else if task.DueDate != "" && isOverdue(task.DueDate) {
-		fmt.Println(color.RedString("[✗] %s", label))
-	} else {
+		if task.Completed {
+			fmt.Println(color.GreenString("[✓] %s", label))
+			continue
+		}
+
+		if task.DueDate != "" {
+			due, err := time.Parse("2006-01-02", task.DueDate)
+			if err == nil && time.Now().After(due) {
+				fmt.Println(color.RedString("[✗] %s", label))
+				continue
+			}
+		}
+
 		fmt.Println(color.CyanString("[ ] %s", label))
 	}
 }
 
-// isOverdue marks a task as past due date
-func isOverdue(dueDate string) bool {
-	due, err := time.Parse("2006-01-02", dueDate)
-	return err == nil && time.Now().After(due)
-}
 
 // MarkTaskDone marks a task as completed
 func MarkTaskDone(input string) error {
@@ -109,21 +130,27 @@ func MarkTaskDone(input string) error {
 
 // SetDueDate assigns a due date to a task
 func SetDueDate(input string, dueDate string) error {
-	tasks, err := LoadTasks()
-	if err != nil {
-		return err
-	}
-	parsedDate, err := ParseNaturalDate(dueDate)
-	if err != nil {
-		return err
-	}
-
+	tasks, _ := LoadTasks()
 	found := false
-	id, idErr := strconv.Atoi(input)
 
+	id, err := strconv.Atoi(input)
 	for i, task := range tasks {
-		if (idErr == nil && task.ID == id) || task.Text == input {
-			tasks[i].DueDate = parsedDate
+		if (err == nil && task.ID == id) || task.Text == input {
+			// Recognize recurring keywords
+			lower := strings.ToLower(strings.TrimSpace(dueDate))
+			switch lower {
+			case "daily", "weekly", "monthly", "yearly",
+				"every monday", "every friday":
+				tasks[i].Recurring = lower
+				tasks[i].DueDate = "" // clear if previously set
+			default:
+				parsedDate, err := ParseNaturalDate(dueDate)
+				if err != nil {
+					return err
+				}
+				tasks[i].DueDate = parsedDate
+				tasks[i].Recurring = "" // reset if previously set
+			}
 			found = true
 			break
 		}
@@ -134,6 +161,7 @@ func SetDueDate(input string, dueDate string) error {
 	}
 	return SaveTasks(tasks)
 }
+
 
 func EditTaskText(input, newText string) error {
 	tasks, err := LoadTasks()

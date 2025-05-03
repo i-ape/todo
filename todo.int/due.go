@@ -45,31 +45,37 @@ func ParseNaturalDate(input string) (string, error) {
 	input = strings.ToLower(strings.TrimSpace(input))
 	now := time.Now()
 
+	// Shorthand: "tomorrow", "fri", etc.
 	if f, ok := abbreviationMap[input]; ok {
 		return f(now), nil
 	}
 
+	// Handle "in N units"
 	if strings.HasPrefix(input, "in ") {
-		parts := strings.Split(input[3:], " ")
+		parts := strings.Fields(input[3:])
 		if len(parts) != 2 {
 			return "", fmt.Errorf("invalid relative date format: %s", input)
 		}
+
 		num, err := strconv.Atoi(parts[0])
 		if err != nil {
 			return "", fmt.Errorf("invalid number in relative date: %v", err)
 		}
-		switch parts[1] {
+
+		unit := parts[1]
+		switch unit {
 		case "d", "day", "days":
 			return now.AddDate(0, 0, num).Format("2006-01-02"), nil
 		case "w", "week", "weeks":
-			return now.AddDate(0, 0, 7*num).Format("2006-01-02"), nil
+			return now.AddDate(0, 0, num*7).Format("2006-01-02"), nil
 		case "m", "month", "months":
 			return now.AddDate(0, num, 0).Format("2006-01-02"), nil
 		default:
-			return "", fmt.Errorf("unsupported unit: %s", parts[1])
+			return "", fmt.Errorf("unsupported unit: %s", unit)
 		}
 	}
 
+	// Fallback: date strings like "2025-05-02"
 	for _, layout := range []string{"2006-01-02", "02-01-2006"} {
 		if t, err := time.Parse(layout, input); err == nil {
 			return t.Format("2006-01-02"), nil
@@ -78,6 +84,7 @@ func ParseNaturalDate(input string) (string, error) {
 
 	return "", fmt.Errorf("could not parse date: %s", input)
 }
+
 
 // 📆 Helpers
 func inDays(n int) func(time.Time) string {

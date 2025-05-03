@@ -15,7 +15,8 @@ type Task struct {
 	Text      string `json:"text"`
 	Completed bool   `json:"completed"`
 	DueDate   string `json:"due_date,omitempty"`
-	Recurring string `json:"recurring,omitempty"`
+	Recurring string `json:"recurring,omitempty"`  // e.g. "daily", "weekly"
+	RepeatUntil string `json:"repeat_until,omitempty"` // date string or count
 }
 
 // AddTask adds a task

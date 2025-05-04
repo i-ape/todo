@@ -30,5 +30,11 @@
     "text": "Push code to GitHub",
     "completed": false,
     "due_date": "2025-04-24"
+  },
+  {
+    "id": 7,
+    "text": "do taxes",
+    "completed": false,
+    "due_date": "2025-05-07"
   }
 ]

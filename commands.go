@@ -50,7 +50,25 @@ func HandleCommands() {
 		return
 	}
 
+	aliases := map[string]string{
+		"a":    "add",
+		"ls":   "list",
+		"d":    "done",
+		"rm":   "delete",
+		"del":  "delete",
+		"clr":  "clear",
+		"r":    "reset",
+		"s":    "search",
+		"h":    "help",
+		"?":    "help",
+		"-h":   "help",
+		"--help": "help",
+	}
+
 	cmd := strings.ToLower(os.Args[1])
+	if real, ok := aliases[cmd]; ok {
+		cmd = real
+	}
 
 	switch cmd {
 	case "add":
@@ -65,7 +83,7 @@ func HandleCommands() {
 	case "due":
 		handleDue()
 
-	case "delete", "rm":
+	case "delete":
 		handleDelete()
 
 	case "clear":
@@ -85,7 +103,7 @@ func HandleCommands() {
 	case "search":
 		handleSearch()
 
-	case "help", "-h", "--help":
+	case "help":
 		printHelp()
 
 	default:
@@ -154,15 +172,26 @@ func handleSearch() {
 // --- Help Menu ---
 
 func printHelp() {
-	fmt.Println(`
-📝 Usage:
-  todo add [text] [due?]         → Add new task
-  todo list                      → List all tasks
-  todo done [id|text]            → Mark task done
-  todo due [id|text] [date]      → Set or change due date
-  todo delete [id|text]          → Delete task
-  todo search [keyword]          → Search task text
-  todo clear                     → Clear all tasks
-  todo reset                     → Delete tasks.json
-  todo help | -h | --help         → Show this help`)
+	fmt.Println(`📝 Usage:
+  todo add [text] [due?]       → Add new task
+  todo list                    → List all tasks
+  todo done [id|text]          → Mark task done
+  todo due [id|text] [date]    → Set/change due date
+  todo delete [id|text]        → Delete task
+  todo search [keyword]        → Search task text
+  todo clear                   → Clear all tasks
+  todo reset                   → Delete tasks.json
+  todo help                    → Show help
+
+🔤 Aliases:
+  a     → add
+  ls    → list
+  d     → done
+  del   → delete
+  rm    → delete
+  clr   → clear
+  r     → reset
+  s     → search
+  h, ?, -h, --help → help`)
 }
+

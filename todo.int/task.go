@@ -11,13 +11,16 @@ import (
 
 // Task struct
 type Task struct {
-	ID        int    `json:"id"`
-	Text      string `json:"text"`
-	Completed bool   `json:"completed"`
-	DueDate   string `json:"due_date,omitempty"`
-	Recurring string `json:"recurring,omitempty"`  // e.g. "daily", "weekly"
-	RepeatUntil string `json:"repeat_until,omitempty"` // date string or count
+	ID           int    `json:"id"`
+	Text         string `json:"text"`
+	Completed    bool   `json:"completed"`
+	DueDate      string `json:"due_date,omitempty"`
+	Recurring    string `json:"recurring,omitempty"`
+	Until        string `json:"until,omitempty"`        
+	Count        int    `json:"count,omitempty"`        
+	Priority     string `json:"priority,omitempty"`    
 }
+
 
 // AddTask adds a task
 func AddTask(text string) error {
@@ -33,37 +36,56 @@ func AddTask(text string) error {
 // AddTaskWithDueDate adds a task with an optional due date
 func AddTaskWithDueDate(text, due string) error {
 	tasks, _ := LoadTasks()
-	parsed := ""
+	parsedDue := ""
 	recurring := ""
+	until := ""
+	count := 0
+	priority := "medium" // default
 
+	// Detect priority keywords
+	textLower := strings.ToLower(text)
+	if strings.Contains(textLower, "[high]") {
+		priority = "high"
+		text = strings.ReplaceAll(text, "[high]", "")
+	} else if strings.Contains(textLower, "[low]") {
+		priority = "low"
+		text = strings.ReplaceAll(text, "[low]", "")
+	}
+
+	// Parse due date or recurring type
 	if due != "" {
-		// Check if it's a known recurring keyword
-		lower := strings.ToLower(due)
-		switch lower {
-		case "daily", "weekly", "monthly", "yearly",
-			"every monday", "every friday":
-			recurring = lower
+		dueLower := strings.ToLower(due)
+
+		switch dueLower {
+		case "daily", "weekly", "monthly", "yearly", "every monday", "every friday":
+			recurring = dueLower
+			// Optional: set a future limit
+			until = time.Now().AddDate(0, 3, 0).Format("2006-01-02") // example: 3 months from now
+			count = 0 // 0 = unlimited
 		default:
-			// Not recurring? Try parsing as date
 			dt, err := ParseNaturalDate(due)
 			if err != nil {
 				return err
 			}
-			parsed = dt
+			parsedDue = dt
 		}
 	}
 
 	newTask := Task{
 		ID:        len(tasks) + 1,
-		Text:      text,
+		Text:      strings.TrimSpace(text),
 		Completed: false,
-		DueDate:   parsed,
+		DueDate:   parsedDue,
 		Recurring: recurring,
+		Until:     until,
+		Count:     count,
+		Priority:  priority,
 	}
 
 	tasks = append(tasks, newTask)
 	return SaveTasks(tasks)
 }
+
 
 
 // ListTasks displays all tasks

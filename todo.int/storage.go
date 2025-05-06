@@ -1,5 +1,5 @@
 // storage.go
-package todo  // ✅ Must use package "todo"
+package todo
 
 import (
 	"encoding/json"

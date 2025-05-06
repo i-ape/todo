@@ -257,3 +257,26 @@ func SearchTasks(keyword string) {
 		fmt.Println("🔍 No matching tasks found.")
 	}
 }
+func SelectTaskFzf(tasks []Task) (Task, error) {
+	if len(tasks) == 0 {
+		return Task{}, fmt.Errorf("no tasks available")
+	}
+
+	options := []string{}
+	idMap := map[string]Task{}
+	for _, t := range tasks {
+		label := fmt.Sprintf("%d: %s", t.ID, t.Text)
+		options = append(options, label)
+		idMap[label] = t
+	}
+
+	cmd := exec.Command("fzf")
+	cmd.Stdin = strings.NewReader(strings.Join(options, "\n"))
+	out, err := cmd.Output()
+	if err != nil {
+		return Task{}, err
+	}
+
+	selected := strings.TrimSpace(string(out))
+	return idMap[selected], nil
+}

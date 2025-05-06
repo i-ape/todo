@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	todo "todo/todo.int"
+	
+
 )
 
 // --- Task Management Functions ---
@@ -130,11 +132,13 @@ func handleAdd() {
 }
 
 func handleDone() {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: todo done [task ID or task text]")
+	tasks, _ := LoadTasks()
+	selected, err := SelectTaskFzf(tasks)
+	if err != nil {
+		fmt.Println("Error:", err)
 		return
 	}
-	if err := MarkTaskDone(os.Args[2]); err != nil {
+	if err := MarkTaskDone(strconv.Itoa(selected.ID)); err != nil {
 		fmt.Println("Error:", err)
 	}
 }

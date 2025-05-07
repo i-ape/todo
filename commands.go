@@ -3,11 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	todo "todo/todo.int"
-	
-
 )
 
 // --- Task Management Functions ---
@@ -53,17 +52,17 @@ func HandleCommands() {
 	}
 
 	aliases := map[string]string{
-		"a":    "add",
-		"ls":   "list",
-		"d":    "done",
-		"rm":   "delete",
-		"del":  "delete",
-		"clr":  "clear",
-		"r":    "reset",
-		"s":    "search",
-		"h":    "help",
-		"?":    "help",
-		"-h":   "help",
+		"a":      "add",
+		"ls":     "list",
+		"d":      "done",
+		"rm":     "delete",
+		"del":    "delete",
+		"clr":    "clear",
+		"r":      "reset",
+		"s":      "search",
+		"h":      "help",
+		"?":      "help",
+		"-h":     "help",
 		"--help": "help",
 	}
 
@@ -132,8 +131,8 @@ func handleAdd() {
 }
 
 func handleDone() {
-	tasks, _ := LoadTasks()
-	selected, err := SelectTaskFzf(tasks)
+	tasks, _ := todo.LoadTasks()
+	selected, err := todo.SelectTaskFzf(tasks)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -198,4 +197,3 @@ func printHelp() {
   s     → search
   h, ?, -h, --help → help`)
 }
-

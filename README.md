@@ -55,6 +55,11 @@ todo-cli/
    git clone https://github.com/i-ape/todo.git
    cd todo
 
+⚡️ Optional Dependency:
+- Install [`fzf`](https://github.com/junegunn/fzf) for interactive task selection:
+  ```bash
+  brew install fzf # or apt install fzf
+
 3. Initialize Go module:
 
 go mod init todo

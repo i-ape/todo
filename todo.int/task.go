@@ -7,21 +7,23 @@ import (
 	"strings"
 	"time"
 
+	//"bufio"
+	//"os"
+
 	"github.com/fatih/color"
 )
 
 // Task struct
 type Task struct {
-	ID           int    `json:"id"`
-	Text         string `json:"text"`
-	Completed    bool   `json:"completed"`
-	DueDate      string `json:"due_date,omitempty"`
-	Recurring    string `json:"recurring,omitempty"`
-	Until        string `json:"until,omitempty"`        
-	Count        int    `json:"count,omitempty"`        
-	Priority     string `json:"priority,omitempty"`    
+	ID        int    `json:"id"`
+	Text      string `json:"text"`
+	Completed bool   `json:"completed"`
+	DueDate   string `json:"due_date,omitempty"`
+	Recurring string `json:"recurring,omitempty"`
+	Until     string `json:"until,omitempty"`
+	Count     int    `json:"count,omitempty"`
+	Priority  string `json:"priority,omitempty"`
 }
-
 
 // AddTask adds a task
 func AddTask(text string) error {
@@ -62,7 +64,7 @@ func AddTaskWithDueDate(text, due string) error {
 			recurring = dueLower
 			// Optional: set a future limit
 			until = time.Now().AddDate(0, 3, 0).Format("2006-01-02") // example: 3 months from now
-			count = 0 // 0 = unlimited
+			count = 0                                                // 0 = unlimited
 		default:
 			dt, err := ParseNaturalDate(due)
 			if err != nil {
@@ -86,8 +88,6 @@ func AddTaskWithDueDate(text, due string) error {
 	tasks = append(tasks, newTask)
 	return SaveTasks(tasks)
 }
-
-
 
 // ListTasks displays all tasks
 func ListTasks() {
@@ -127,7 +127,6 @@ func ListTasks() {
 	}
 }
 
-
 // MarkTaskDone marks a task as completed
 func MarkTaskDone(input string) error {
 	tasks, err := LoadTasks()
@@ -150,7 +149,6 @@ func MarkTaskDone(input string) error {
 	}
 	return SaveTasks(tasks)
 }
-
 
 // SetDueDate assigns a due date to a task
 func SetDueDate(input string, dueDate string) error {
@@ -186,7 +184,6 @@ func SetDueDate(input string, dueDate string) error {
 	return SaveTasks(tasks)
 }
 
-
 func EditTaskText(input, newText string) error {
 	tasks, err := LoadTasks()
 	if err != nil {
@@ -208,7 +205,6 @@ func EditTaskText(input, newText string) error {
 	}
 	return SaveTasks(tasks)
 }
-
 
 // DeleteTask removes a task by ID or text
 func DeleteTask(input string) error {
@@ -263,21 +259,38 @@ func SelectTaskFzf(tasks []Task) (Task, error) {
 		return Task{}, fmt.Errorf("no tasks available")
 	}
 
-	options := []string{}
-	idMap := map[string]Task{}
-	for _, t := range tasks {
-		label := fmt.Sprintf("%d: %s", t.ID, t.Text)
-		options = append(options, label)
-		idMap[label] = t
+	// Try to use fzf
+	if _, err := exec.LookPath("fzf"); err == nil {
+		options := []string{}
+		idMap := map[string]Task{}
+		for _, t := range tasks {
+			label := fmt.Sprintf("%d: %s", t.ID, t.Text)
+			options = append(options, label)
+			idMap[label] = t
+		}
+
+		cmd := exec.Command("fzf")
+		cmd.Stdin = strings.NewReader(strings.Join(options, "\n"))
+		out, err := cmd.Output()
+		if err != nil {
+			return Task{}, fmt.Errorf("fzf error: %w", err)
+		}
+
+		selected := strings.TrimSpace(string(out))
+		return idMap[selected], nil
 	}
 
-	cmd := exec.Command("fzf")
-	cmd.Stdin = strings.NewReader(strings.Join(options, "\n"))
-	out, err := cmd.Output()
-	if err != nil {
-		return Task{}, err
+	// 🧭 Fallback mode: numbered input
+	fmt.Println("Fzf not found — fallback to manual selection:")
+	for i, task := range tasks {
+		fmt.Printf("%d: %s\n", i+1, task.Text)
 	}
+	fmt.Print("Enter number of task: ")
+	var choice int
+	fmt.Scanln(&choice)
 
-	selected := strings.TrimSpace(string(out))
-	return idMap[selected], nil
+	if choice < 1 || choice > len(tasks) {
+		return Task{}, fmt.Errorf("invalid selection")
+	}
+	return tasks[choice-1], nil
 }

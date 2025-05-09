@@ -15,14 +15,15 @@ import (
 
 // Task struct
 type Task struct {
-	ID        int    `json:"id"`
-	Text      string `json:"text"`
-	Completed bool   `json:"completed"`
-	DueDate   string `json:"due_date,omitempty"`
-	Recurring string `json:"recurring,omitempty"`
-	Until     string `json:"until,omitempty"`
-	Count     int    `json:"count,omitempty"`
-	Priority  string `json:"priority,omitempty"`
+	ID        int      `json:"id"`
+	Text      string   `json:"text"`
+	Completed bool     `json:"completed"`
+	DueDate   string   `json:"due_date,omitempty"`
+	Recurring string   `json:"recurring,omitempty"`
+	Until     string   `json:"until,omitempty"`
+	Count     int      `json:"count,omitempty"`
+	Priority  string   `json:"priority,omitempty"`
+	Tags      []string `json:"tags,omitempty"`
 }
 
 // AddTask adds a task
@@ -39,13 +40,14 @@ func AddTask(text string) error {
 // AddTaskWithDueDate adds a task with an optional due date
 func AddTaskWithDueDate(text, due string) error {
 	tasks, _ := LoadTasks()
+
 	parsedDue := ""
 	recurring := ""
 	until := ""
 	count := 0
 	priority := "medium" // default
 
-	// Detect priority keywords
+	// ✅ Priority: [high] / [low]
 	textLower := strings.ToLower(text)
 	if strings.Contains(textLower, "[high]") {
 		priority = "high"
@@ -55,10 +57,22 @@ func AddTaskWithDueDate(text, due string) error {
 		text = strings.ReplaceAll(text, "[low]", "")
 	}
 
-	// Parse due date or recurring type
+	// ✅ Tags: extract # or @ tokens
+	words := strings.Fields(text)
+	tags := []string{}
+	filtered := []string{}
+	for _, w := range words {
+		if strings.HasPrefix(w, "#") || strings.HasPrefix(w, "@") {
+			tags = append(tags, w)
+		} else {
+			filtered = append(filtered, w)
+		}
+	}
+	text = strings.Join(filtered, " ")
+
+	// ✅ Due date or recurring
 	if due != "" {
 		dueLower := strings.ToLower(due)
-
 		switch dueLower {
 		case "daily", "weekly", "monthly", "yearly", "every monday", "every friday":
 			recurring = dueLower
@@ -74,6 +88,7 @@ func AddTaskWithDueDate(text, due string) error {
 		}
 	}
 
+	// ✅ Create task
 	newTask := Task{
 		ID:        len(tasks) + 1,
 		Text:      strings.TrimSpace(text),
@@ -83,6 +98,7 @@ func AddTaskWithDueDate(text, due string) error {
 		Until:     until,
 		Count:     count,
 		Priority:  priority,
+		Tags:      tags,
 	}
 
 	tasks = append(tasks, newTask)

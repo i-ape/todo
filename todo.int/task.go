@@ -23,7 +23,7 @@ type Task struct {
 	Until     string   `json:"until,omitempty"`
 	Count     int      `json:"count,omitempty"`
 	Priority  string   `json:"priority,omitempty"`
-	Tags      []string `json:"tags,omitempty"`
+	Tags      []string `json:"tags,omitempty"` // [] = slice
 }
 
 // AddTask adds a task
@@ -270,43 +270,37 @@ func SearchTasks(keyword string) {
 		fmt.Println("🔍 No matching tasks found.")
 	}
 }
-func SelectTaskFzf(tasks []Task) (Task, error) {
+func SelectTaskFzf(tasks []Task, filters ...string) (Task, error) {
 	if len(tasks) == 0 {
 		return Task{}, fmt.Errorf("no tasks available")
 	}
+	filter := ""
+	if len(filters) > 0 {
+		filter = filters[0]
+	}
 
-	// Try to use fzf
-	if _, err := exec.LookPath("fzf"); err == nil {
-		options := []string{}
-		idMap := map[string]Task{}
-		for _, t := range tasks {
-			label := fmt.Sprintf("%d: %s", t.ID, t.Text)
-			options = append(options, label)
-			idMap[label] = t
+	if _, err := exec.LookPath("fzf"); err != nil {
+		return Task{}, fmt.Errorf("fzf not installed")
+	}
+
+	options := []string{}
+	idMap := map[string]Task{}
+	for _, t := range tasks {
+		if filter != "" && !strings.Contains(strings.ToLower(t.Text), strings.ToLower(filter)) {
+			continue
 		}
-
-		cmd := exec.Command("fzf")
-		cmd.Stdin = strings.NewReader(strings.Join(options, "\n"))
-		out, err := cmd.Output()
-		if err != nil {
-			return Task{}, fmt.Errorf("fzf error: %w", err)
-		}
-
-		selected := strings.TrimSpace(string(out))
-		return idMap[selected], nil
+		label := fmt.Sprintf("%d: %s", t.ID, t.Text)
+		options = append(options, label)
+		idMap[label] = t
 	}
 
-	// 🧭 Fallback mode: numbered input
-	fmt.Println("Fzf not found — fallback to manual selection:")
-	for i, task := range tasks {
-		fmt.Printf("%d: %s\n", i+1, task.Text)
+	cmd := exec.Command("fzf")
+	cmd.Stdin = strings.NewReader(strings.Join(options, "\n"))
+	out, err := cmd.Output()
+	if err != nil {
+		return Task{}, fmt.Errorf("fzf error: %w", err)
 	}
-	fmt.Print("Enter number of task: ")
-	var choice int
-	fmt.Scanln(&choice)
 
-	if choice < 1 || choice > len(tasks) {
-		return Task{}, fmt.Errorf("invalid selection")
-	}
-	return tasks[choice-1], nil
+	selected := strings.TrimSpace(string(out))
+	return idMap[selected], nil
 }

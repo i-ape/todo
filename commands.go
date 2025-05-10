@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strconv"
@@ -74,7 +75,8 @@ func HandleCommands() {
 	switch cmd {
 	case "add":
 		handleAdd()
-
+	case "edit":
+		handleEdit()
 	case "list":
 		ListTasks()
 
@@ -129,6 +131,30 @@ func handleAdd() {
 		fmt.Println("Error:", err)
 	}
 }
+func handleEdit() {
+	tasks, err := todo.LoadTasks()
+	if err != nil {
+		fmt.Println("Failed to load tasks:", err)
+		return
+	}
+	selected, err := todo.SelectTaskFzf(tasks)
+	if err != nil {
+		fmt.Println("Select error:", err)
+		return
+	}
+
+	fmt.Printf("✏️  Editing: %s\n> ", selected.Text)
+	reader := bufio.NewReader(os.Stdin)
+	newText, _ := reader.ReadString('\n')
+	newText = strings.TrimSpace(newText)
+	if newText == "" {
+		fmt.Println("No changes made.")
+		return
+	}
+	if err := todo.EditTaskText(strconv.Itoa(selected.ID), newText); err != nil {
+		fmt.Println("Edit error:", err)
+	}
+}
 
 func handleDone() {
 	tasks, _ := todo.LoadTasks()
@@ -155,12 +181,18 @@ func handleDue() {
 }
 
 func handleDelete() {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: todo delete [task ID or task text]")
+	tasks, err := todo.LoadTasks()
+	if err != nil {
+		fmt.Println("Error loading tasks:", err)
 		return
 	}
-	if err := DeleteTask(os.Args[2]); err != nil {
-		fmt.Println("Error:", err)
+	selected, err := todo.SelectTaskFzf(tasks)
+	if err != nil {
+		fmt.Println("Error selecting task:", err)
+		return
+	}
+	if err := todo.DeleteTask(strconv.Itoa(selected.ID)); err != nil {
+		fmt.Println("Error deleting task:", err)
 	}
 }
 

@@ -304,3 +304,33 @@ func SelectTaskFzf(tasks []Task, filters ...string) (Task, error) {
 	selected := strings.TrimSpace(string(out))
 	return idMap[selected], nil
 }
+func SelectMultipleTasksFzf(tasks []Task) ([]Task, error) {
+	if _, err := exec.LookPath("fzf"); err != nil {
+		return nil, fmt.Errorf("fzf not found in PATH")
+	}
+
+	options := []string{}
+	idMap := map[string]Task{}
+	for _, t := range tasks {
+		label := fmt.Sprintf("%d: %s", t.ID, t.Text)
+		options = append(options, label)
+		idMap[label] = t
+	}
+
+	cmd := exec.Command("fzf", "--multi")
+	cmd.Stdin = strings.NewReader(strings.Join(options, "\n"))
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("fzf error: %w", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	var selected []Task
+	for _, line := range lines {
+		if task, ok := idMap[line]; ok {
+			selected = append(selected, task)
+		}
+	}
+
+	return selected, nil
+}

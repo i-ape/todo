@@ -131,18 +131,13 @@ func handleAdd() {
 		fmt.Println("Error:", err)
 	}
 }
+
 func handleEdit() {
-	tasks, err := todo.LoadTasks()
-	if err != nil {
-		fmt.Println("Failed to load tasks:", err)
-		return
-	}
-	selected, err := todo.SelectTaskFzf(tasks)
+	selected, err := selectTaskWithFzf()
 	if err != nil {
 		fmt.Println("Select error:", err)
 		return
 	}
-
 	fmt.Printf("✏️  Editing: %s\n> ", selected.Text)
 	reader := bufio.NewReader(os.Stdin)
 	newText, _ := reader.ReadString('\n')
@@ -157,8 +152,7 @@ func handleEdit() {
 }
 
 func handleDone() {
-	tasks, _ := todo.LoadTasks()
-	selected, err := todo.SelectTaskFzf(tasks)
+	selected, err := selectTaskWithFzf()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -167,6 +161,7 @@ func handleDone() {
 		fmt.Println("Error:", err)
 	}
 }
+
 
 func handleDue() {
 	if len(os.Args) < 4 {
@@ -181,12 +176,7 @@ func handleDue() {
 }
 
 func handleDelete() {
-	tasks, err := todo.LoadTasks()
-	if err != nil {
-		fmt.Println("Error loading tasks:", err)
-		return
-	}
-	selected, err := todo.SelectTaskFzf(tasks)
+	selected, err := selectTaskWithFzf()
 	if err != nil {
 		fmt.Println("Error selecting task:", err)
 		return
@@ -196,12 +186,20 @@ func handleDelete() {
 	}
 }
 
+
 func handleSearch() {
 	if len(os.Args) < 3 {
 		fmt.Println("Usage: todo search [keyword]")
 		return
 	}
 	SearchTasks(os.Args[2])
+}
+func selectTaskWithFzf() (todo.Task, error) {
+	tasks, err := todo.LoadTasks()
+	if err != nil {
+		return todo.Task{}, fmt.Errorf("failed to load tasks: %w", err)
+	}
+	return todo.SelectTaskFzf(tasks)
 }
 
 // --- Help Menu ---

@@ -194,12 +194,25 @@ func handleSearch() {
 	}
 	SearchTasks(os.Args[2])
 }
+
+func selectMultipleTasksWithFzf() ([]todo.Task, error) {
+	tasks, err := todo.LoadTasks()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+	return todo.selectTaskWithFzf(tasks, true)
+}
+
 func selectTaskWithFzf() (todo.Task, error) {
 	tasks, err := todo.LoadTasks()
 	if err != nil {
 		return todo.Task{}, fmt.Errorf("failed to load tasks: %w", err)
 	}
-	return todo.SelectTaskFzf(tasks)
+	sel, err := todo.SelectTaskFzf(tasks, false)
+	if err != nil || len(sel) == 0 {
+		return todo.Task{}, fmt.Errorf("no task selected")
+	}
+	return sel[0], nil
 }
 
 // --- Help Menu ---

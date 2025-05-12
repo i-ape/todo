@@ -133,7 +133,7 @@ func handleAdd() {
 }
 
 func handleEdit() {
-	selected, err := selectTaskWithFzf()
+	selected, err := selectSingleTaskWithFzf()
 	if err != nil {
 		fmt.Println("Select error:", err)
 		return
@@ -152,7 +152,7 @@ func handleEdit() {
 }
 
 func handleDone() {
-	selected, err := selectTaskWithFzf()
+	selected, err := selectSingleTaskWithFzf()
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -176,7 +176,7 @@ func handleDue() {
 }
 
 func handleDelete() {
-	selected, err := selectTaskWithFzf()
+	selected, err := selectSingleTaskWithFzf()
 	if err != nil {
 		fmt.Println("Error selecting task:", err)
 		return
@@ -200,19 +200,15 @@ func selectMultipleTasksWithFzf() ([]todo.Task, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
-	return todo.selectTaskWithFzf(tasks, true)
+	return todo.SelectTaskFzf(tasks, true)
 }
 
-func selectTaskWithFzf() (todo.Task, error) {
+func selectSingleTaskWithFzf() (todo.Task, error) {
 	tasks, err := todo.LoadTasks()
 	if err != nil {
-		return todo.Task{}, fmt.Errorf("failed to load tasks: %w", err)
+		return todo.Task{}, err
 	}
-	sel, err := todo.SelectTaskFzf(tasks, false)
-	if err != nil || len(sel) == 0 {
-		return todo.Task{}, fmt.Errorf("no task selected")
-	}
-	return sel[0], nil
+	return todo.SelectTaskFzf(tasks)
 }
 
 // --- Help Menu ---

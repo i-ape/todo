@@ -195,7 +195,8 @@ func handleSearch() {
 	SearchTasks(os.Args[2])
 }
 
-func SelectTasksWithFzf(multi bool) ([]Task, error) {
+func SelectTasksWithFzf(multi bool) ([]todo.Task, error) {
+
 	tasks, err := LoadTasks()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
@@ -234,14 +235,6 @@ func SelectTasksWithFzf(multi bool) ([]Task, error) {
 	}
 
 	return selected, nil
-}
-
-func SelectTasksWithFzf() (Task, error) {
-	tasks, err := SelectTasksWithFzf(false)
-	if err != nil || len(tasks) == 0 {
-		return Task{}, err
-	}
-	return tasks[0], nil
 }
 
 

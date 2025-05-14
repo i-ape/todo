@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -196,8 +197,7 @@ func handleSearch() {
 }
 
 func SelectTasksWithFzf(multi bool) ([]todo.Task, error) {
-
-	tasks, err := LoadTasks()
+	tasks, err := todo.LoadTasks()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
@@ -207,7 +207,7 @@ func SelectTasksWithFzf(multi bool) ([]todo.Task, error) {
 	}
 
 	options := []string{}
-	idMap := map[string]Task{}
+	idMap := map[string]todo.Task{}
 	for _, t := range tasks {
 		label := fmt.Sprintf("%d: %s", t.ID, t.Text)
 		options = append(options, label)
@@ -227,7 +227,7 @@ func SelectTasksWithFzf(multi bool) ([]todo.Task, error) {
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	var selected []Task
+	var selected []todo.Task
 	for _, line := range lines {
 		if task, ok := idMap[line]; ok {
 			selected = append(selected, task)
@@ -235,6 +235,14 @@ func SelectTasksWithFzf(multi bool) ([]todo.Task, error) {
 	}
 
 	return selected, nil
+}
+
+func selectSingleTaskWithFzf() (todo.Task, error) {
+	tasks, err := SelectTasksWithFzf(false)
+	if err != nil || len(tasks) == 0 {
+		return todo.Task{}, err
+	}
+	return tasks[0], nil
 }
 
 

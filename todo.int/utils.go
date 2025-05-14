@@ -23,3 +23,10 @@ func parseTags(input string) []string {
 	}
 	return tags
 }
+func selectSingleTask() (Task, error) {
+	tasks, err := SelectTasksWithFzf(false)
+	if err != nil || len(tasks) == 0 {
+		return Task{}, err
+	}
+	return tasks[0], nil
+}

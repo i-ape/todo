@@ -41,7 +41,7 @@ func ResetTasks() error {
 }
 
 func SearchTasks(keyword string) {
-	todo.SearchTasks(keyword)
+	todo.SearchTasks(keyword);
 }
 
 // --- CLI Command Dispatcher ---
@@ -195,21 +195,55 @@ func handleSearch() {
 	SearchTasks(os.Args[2])
 }
 
-func selectMultipleTasksWithFzf() ([]todo.Task, error) {
-	tasks, err := todo.LoadTasks()
+func SelectTasksWithFzf(multi bool) ([]Task, error) {
+	tasks, err := LoadTasks()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
-	return todo.SelectTaskFzf(tasks, true)
+
+	if _, err := exec.LookPath("fzf"); err != nil {
+		return nil, fmt.Errorf("fzf not found")
+	}
+
+	options := []string{}
+	idMap := map[string]Task{}
+	for _, t := range tasks {
+		label := fmt.Sprintf("%d: %s", t.ID, t.Text)
+		options = append(options, label)
+		idMap[label] = t
+	}
+
+	args := []string{}
+	if multi {
+		args = append(args, "--multi")
+	}
+
+	cmd := exec.Command("fzf", args...)
+	cmd.Stdin = strings.NewReader(strings.Join(options, "\n"))
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("fzf error: %w", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	var selected []Task
+	for _, line := range lines {
+		if task, ok := idMap[line]; ok {
+			selected = append(selected, task)
+		}
+	}
+
+	return selected, nil
 }
 
-func selectSingleTaskWithFzf() (todo.Task, error) {
-	tasks, err := todo.LoadTasks()
-	if err != nil {
-		return todo.Task{}, err
+func SelectTasksWithFzf() (Task, error) {
+	tasks, err := SelectTasksWithFzf(false)
+	if err != nil || len(tasks) == 0 {
+		return Task{}, err
 	}
-	return todo.SelectTaskFzf(tasks)
+	return tasks[0], nil
 }
+
 
 // --- Help Menu ---
 

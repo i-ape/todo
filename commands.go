@@ -42,7 +42,7 @@ func ResetTasks() error {
 }
 
 func SearchTasks(keyword string) {
-	todo.SearchTasks(keyword);
+	todo.SearchTasks(keyword)
 }
 
 // --- CLI Command Dispatcher ---
@@ -80,130 +80,32 @@ func HandleCommands() {
 		handleEdit()
 	case "list":
 		ListTasks()
-
 	case "done":
 		handleDone()
-
 	case "due":
 		handleDue()
-
 	case "delete":
 		handleDelete()
-
 	case "clear":
-		if err := ClearTasks(); err != nil {
-			fmt.Println("Error:", err)
-		} else {
-			fmt.Println("✅ All tasks cleared.")
-		}
-
+		handleClear()
 	case "reset":
-		if err := ResetTasks(); err != nil {
-			fmt.Println("⚠️ Reset failed:", err)
-		} else {
-			fmt.Println("🗑️ tasks.json deleted.")
-		}
-
+		handleReset()
 	case "search":
 		handleSearch()
-
 	case "help":
 		printHelp()
-
 	default:
 		fmt.Println("❌ Unknown command:", cmd)
 		printHelp()
 	}
 }
 
-// --- Handlers ---
+// --- FZF Selector ---
 
-func handleAdd() {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: todo add [task text] [optional due date]")
-		return
-	}
-	text := os.Args[2]
-	due := ""
-	if len(os.Args) > 3 {
-		due = strings.Join(os.Args[3:], " ")
-	}
-	if err := AddTask(text, due); err != nil {
-		fmt.Println("Error:", err)
-	}
-}
-
-func handleEdit() {
-	selected, err := selectSingleTaskWithFzf()
-	if err != nil {
-		fmt.Println("Select error:", err)
-		return
-	}
-	fmt.Printf("✏️  Editing: %s\n> ", selected.Text)
-	reader := bufio.NewReader(os.Stdin)
-	newText, _ := reader.ReadString('\n')
-	newText = strings.TrimSpace(newText)
-	if newText == "" {
-		fmt.Println("No changes made.")
-		return
-	}
-	if err := todo.EditTaskText(strconv.Itoa(selected.ID), newText); err != nil {
-		fmt.Println("Edit error:", err)
-	}
-}
-
-func handleDone() {
-	selected, err := selectSingleTaskWithFzf()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	if err := MarkTaskDone(strconv.Itoa(selected.ID)); err != nil {
-		fmt.Println("Error:", err)
-	}
-}
-
-
-func handleDue() {
-	if len(os.Args) < 4 {
-		fmt.Println("Usage: todo due [task ID or task text] [date]")
-		return
-	}
-	input := os.Args[2]
-	dueDate := strings.Join(os.Args[3:], " ")
-	if err := SetDueDate(input, dueDate); err != nil {
-		fmt.Println("Error:", err)
-	}
-}
-
-func handleDelete() {
-	selected, err := selectSingleTaskWithFzf()
-	if err != nil {
-		fmt.Println("Error selecting task:", err)
-		return
-	}
-	if err := todo.DeleteTask(strconv.Itoa(selected.ID)); err != nil {
-		fmt.Println("Error deleting task:", err)
-	}
-}
-
-
-func handleSearch() {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: todo search [keyword]")
-		return
-	}
-	SearchTasks(os.Args[2])
-}
-
-func SelectTasksWithFzf(multi bool) ([]todo.Task, error) {
+func selectTasksWithFzf(multi bool) ([]todo.Task, error) {
 	tasks, err := todo.LoadTasks()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
-	}
-
-	if _, err := exec.LookPath("fzf"); err != nil {
-		return nil, fmt.Errorf("fzf not found")
 	}
 
 	options := []string{}
@@ -237,37 +139,118 @@ func SelectTasksWithFzf(multi bool) ([]todo.Task, error) {
 	return selected, nil
 }
 
-func selectSingleTaskWithFzf() (todo.Task, error) {
-	tasks, err := SelectTasksWithFzf(false)
-	if err != nil || len(tasks) == 0 {
-		return todo.Task{}, err
+// --- Handlers ---
+
+func handleAdd() {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: todo add [task text] [optional due date]")
+		return
 	}
-	return tasks[0], nil
+	text := os.Args[2]
+	due := ""
+	if len(os.Args) > 3 {
+		due = strings.Join(os.Args[3:], " ")
+	}
+	if err := AddTask(text, due); err != nil {
+		fmt.Println("Error:", err)
+	}
 }
 
+func handleEdit() {
+	selected, err := selectTasksWithFzf(false)
+	if err != nil || len(selected) == 0 {
+		fmt.Println("Select error:", err)
+		return
+	}
+	task := selected[0]
 
-// --- Help Menu ---
+	fmt.Printf("✏️  Editing: %s\n> ", task.Text)
+	reader := bufio.NewReader(os.Stdin)
+	newText, _ := reader.ReadString('\n')
+	newText = strings.TrimSpace(newText)
+	if newText == "" {
+		fmt.Println("No changes made.")
+		return
+	}
+	if err := todo.EditTaskText(strconv.Itoa(task.ID), newText); err != nil {
+		fmt.Println("Edit error:", err)
+	}
+}
+
+func handleDone() {
+	selected, err := selectTasksWithFzf(true)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	for _, task := range selected {
+		if err := MarkTaskDone(strconv.Itoa(task.ID)); err != nil {
+			fmt.Println("❌", err)
+		}
+	}
+}
+
+func handleDelete() {
+	selected, err := selectTasksWithFzf(true)
+	if err != nil {
+		fmt.Println("Error selecting task:", err)
+		return
+	}
+	for _, task := range selected {
+		if err := todo.DeleteTask(strconv.Itoa(task.ID)); err != nil {
+			fmt.Println("❌", err)
+		}
+	}
+}
+
+func handleDue() {
+	if len(os.Args) < 4 {
+		fmt.Println("Usage: todo due [task ID or task text] [date]")
+		return
+	}
+	input := os.Args[2]
+	dueDate := strings.Join(os.Args[3:], " ")
+	if err := SetDueDate(input, dueDate); err != nil {
+		fmt.Println("Error:", err)
+	}
+}
+
+func handleSearch() {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: todo search [keyword]")
+		return
+	}
+	SearchTasks(os.Args[2])
+}
+
+func handleClear() {
+	if err := ClearTasks(); err != nil {
+		fmt.Println("Error:", err)
+	} else {
+		fmt.Println("✅ All tasks cleared.")
+	}
+}
+
+func handleReset() {
+	if err := ResetTasks(); err != nil {
+		fmt.Println("⚠️ Reset failed:", err)
+	} else {
+		fmt.Println("🗑️ tasks.json deleted.")
+	}
+}
+
+// --- Help ---
 
 func printHelp() {
 	fmt.Println(`📝 Usage:
   todo add [text] [due?]       → Add new task
   todo list                    → List all tasks
-  todo done [id|text]          → Mark task done
+  todo done                    → Mark one or more tasks done
   todo due [id|text] [date]    → Set/change due date
-  todo delete [id|text]        → Delete task
+  todo delete                  → Delete one or more tasks
+  todo edit                    → Edit a task
   todo search [keyword]        → Search task text
   todo clear                   → Clear all tasks
   todo reset                   → Delete tasks.json
-  todo help                    → Show help
-
-🔤 Aliases:
-  a     → add
-  ls    → list
-  d     → done
-  del   → delete
-  rm    → delete
-  clr   → clear
-  r     → reset
-  s     → search
-  h, ?, -h, --help → help`)
+  todo help                    → Show help`)
 }

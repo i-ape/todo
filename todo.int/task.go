@@ -119,6 +119,11 @@ func ListTasks() {
 
 	for _, task := range tasks {
 		label := fmt.Sprintf("%d: %s", task.ID, task.Text)
+
+		if len(task.Tags) > 0 {
+			label += " " + strings.Join(task.Tags, " ")
+		}
+
 		if task.DueDate != "" {
 			label += fmt.Sprintf(" (Due: %s)", task.DueDate)
 		}
@@ -251,6 +256,46 @@ func ClearTasks() error {
 	return SaveTasks([]Task{})
 }
 
+func UpdateTags(input string, add []string, remove []string) error {
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
+
+	found := false
+	id, idErr := strconv.Atoi(input)
+
+	for i := range tasks {
+		if (idErr == nil && tasks[i].ID == id) || tasks[i].Text == input {
+			// Add tags
+			tagSet := make(map[string]bool)
+			for _, t := range tasks[i].Tags {
+				tagSet[t] = true
+			}
+			for _, t := range add {
+				tagSet[t] = true
+			}
+			for _, t := range remove {
+				delete(tagSet, t)
+			}
+			// Update slice
+			tasks[i].Tags = []string{}
+			for t := range tagSet {
+				tasks[i].Tags = append(tasks[i].Tags, t)
+			}
+
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("task not found")
+	}
+	return SaveTasks(tasks)
+}
+
+
 // SearchTasks displays tasks that contain a keyword
 func SearchTasks(keyword string) {
 	tasks, err := LoadTasks()
@@ -270,6 +315,7 @@ func SearchTasks(keyword string) {
 		fmt.Println("🔍 No matching tasks found.")
 	}
 }
+
 func SelectTaskFzf(tasks []Task, filters ...string) (Task, error) {
 	if len(tasks) == 0 {
 		return Task{}, fmt.Errorf("no tasks available")

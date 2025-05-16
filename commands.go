@@ -92,6 +92,8 @@ func HandleCommands() {
 		handleReset()
 	case "search":
 		handleSearch()
+	case "tag":
+		handleTag()
 	case "help":
 		printHelp()
 	default:
@@ -222,6 +224,31 @@ func handleSearch() {
 	}
 	SearchTasks(os.Args[2])
 }
+func handleTag() {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: todo tag [id|text] [tags...] [--remove #tag1 #tag2]")
+		return
+	}
+
+	target := os.Args[2]
+	addTags := []string{}
+	removeTags := []string{}
+
+	// Parse args after target
+	for i := 3; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		if arg == "--remove" {
+			removeTags = os.Args[i+1:]
+			break
+		}
+		addTags = append(addTags, arg)
+	}
+
+	if err := todo.UpdateTags(target, addTags, removeTags); err != nil {
+		fmt.Println("Error:", err)
+	}
+}
+
 
 func handleClear() {
 	if err := ClearTasks(); err != nil {

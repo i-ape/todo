@@ -17,9 +17,11 @@ func AddTask(text, due string) error {
 	return todo.AddTaskWithDueDate(text, due)
 }
 
-func ListTasks() {
-	todo.ListTasks()
+func handleList() {
+	tags := os.Args[2:] // all arguments after `list` = filters
+	todo.ListTasks(tags...)
 }
+
 
 func MarkTaskDone(input string) error {
 	return todo.MarkTaskDone(input)
@@ -79,7 +81,7 @@ func HandleCommands() {
 	case "edit":
 		handleEdit()
 	case "list":
-		ListTasks()
+		handleList()
 	case "done":
 		handleDone()
 	case "due":

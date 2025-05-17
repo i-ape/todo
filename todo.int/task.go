@@ -106,7 +106,7 @@ func AddTaskWithDueDate(text, due string) error {
 }
 
 // ListTasks displays all tasks
-func ListTasks() {
+func ListTasks(filterTags ...string) {
 	tasks, err := LoadTasks()
 	if err != nil {
 		color.Red("Failed to load tasks: %v", err)
@@ -118,12 +118,14 @@ func ListTasks() {
 	}
 
 	for _, task := range tasks {
-		label := fmt.Sprintf("%d: %s", task.ID, task.Text)
+		if !containsAllTags(task.Tags, filterTags) {
+			continue
+		}
 
+		label := fmt.Sprintf("%d: %s", task.ID, task.Text)
 		if len(task.Tags) > 0 {
 			label += " " + strings.Join(task.Tags, " ")
 		}
-
 		if task.DueDate != "" {
 			label += fmt.Sprintf(" (Due: %s)", task.DueDate)
 		}
@@ -131,22 +133,35 @@ func ListTasks() {
 			label += color.MagentaString(" (Repeats: %s)", task.Recurring)
 		}
 
-		if task.Completed {
+		switch {
+		case task.Completed:
 			fmt.Println(color.GreenString("[✓] %s", label))
-			continue
-		}
-
-		if task.DueDate != "" {
+		case task.DueDate != "":
 			due, err := time.Parse("2006-01-02", task.DueDate)
 			if err == nil && time.Now().After(due) {
 				fmt.Println(color.RedString("[✗] %s", label))
-				continue
+			} else {
+				fmt.Println(color.CyanString("[ ] %s", label))
 			}
+		default:
+			fmt.Println(color.CyanString("[ ] %s", label))
 		}
-
-		fmt.Println(color.CyanString("[ ] %s", label))
 	}
 }
+
+func containsAllTags(taskTags, filterTags []string) bool {
+	tagSet := make(map[string]bool)
+	for _, tag := range taskTags {
+		tagSet[tag] = true
+	}
+	for _, filter := range filterTags {
+		if !tagSet[filter] {
+			return false
+		}
+	}
+	return true
+}
+
 
 // MarkTaskDone marks a task as completed
 func MarkTaskDone(input string) error {

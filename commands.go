@@ -95,7 +95,7 @@ func HandleCommands() {
 	case "search":
 		handleSearch()
 	case "tag":
-		handleTag()
+		handleTags()
 	case "help":
 		printHelp()
 	default:
@@ -226,30 +226,54 @@ func handleSearch() {
 	}
 	SearchTasks(os.Args[2])
 }
-func handleTag() {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: todo tag [id|text] [tags...] [--remove #tag1 #tag2]")
+func handleTags() {
+	tasks, err := selectTasksWithFzf(false)
+	if err != nil || len(tasks) == 0 {
+		fmt.Println("Error selecting task:", err)
+		return
+	}
+	task := tasks[0] // ✅ select first from slice
+
+	fmt.Printf("🏷️  Current tags: %v\nEnter new tags (comma-separated): ", task.Tags)
+	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(input)
+
+	if input == "" {
+		fmt.Println("❌ No tags entered.")
 		return
 	}
 
-	target := os.Args[2]
-	addTags := []string{}
-	removeTags := []string{}
+	rawTags := strings.Split(input, ",")
+	tags := []string{}
+	for _, tag := range rawTags {
+		t := strings.TrimSpace(tag)
+		if t != "" {
+			tags = append(tags, t)
+		}
+	}
 
-	// Parse args after target
-	for i := 3; i < len(os.Args); i++ {
-		arg := os.Args[i]
-		if arg == "--remove" {
-			removeTags = os.Args[i+1:]
+	all, err := todo.LoadTasks()
+	if err != nil {
+		fmt.Println("Error loading tasks:", err)
+		return
+	}
+
+	for i, t := range all {
+		if t.ID == task.ID {
+			all[i].Tags = tags
 			break
 		}
-		addTags = append(addTags, arg)
 	}
 
-	if err := todo.UpdateTags(target, addTags, removeTags); err != nil {
-		fmt.Println("Error:", err)
+	if err := todo.SaveTasks(all); err != nil {
+		fmt.Println("Error saving tasks:", err)
+		return
 	}
+
+	fmt.Println("✅ Tags updated.")
 }
+
 
 
 func handleClear() {

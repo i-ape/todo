@@ -26,6 +26,8 @@ It covers:
 - Search by keyword
 - Reset/delete the entire task database
 - Color-coded task listing (due, overdue, complete)
+- Add and edit tags with `@` or `#` syntax
+- Filter tasks by tag (e.g. `todo tags @work`)
 
 ---
 
@@ -80,14 +82,17 @@ go build -o todo
 - todo search "blog"
 - todo delete 1
 - todo clear
+- todo tags [@tag|#tag]         → Filter tasks by tag
 
 ## Example
 ```sh
 todo add "Finish writing blog post"
 todo due 1 2024-04-10
 todo list
+todo add "Write report @work #priority"
+todo tags @work
 
-🧠 Learning Goals
+## 🧠 Learning Goals
 
 ✅ Structs & methods
 
@@ -107,9 +112,9 @@ todo list
 
 Cobra or urfave CLI parser
 
-Task priorities
+Task priorities, x
 
-Tags & filters
+Tags & filters, x
 
 Weekly/agenda views
 

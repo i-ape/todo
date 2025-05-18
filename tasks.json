@@ -5,36 +5,8 @@
     "completed": false
   },
   {
-    "id": 3,
-    "text": "add deadline fn",
-    "completed": false
-  },
-  {
-    "id": 3,
-    "text": "Fix Go imports",
-    "completed": false
-  },
-  {
     "id": 4,
     "text": "Write documentation",
     "completed": false
-  },
-  {
-    "id": 5,
-    "text": "Push code to GitHub",
-    "completed": false,
-    "due_date": "2025-04-22"
-  },
-  {
-    "id": 6,
-    "text": "Push code to GitHub",
-    "completed": false,
-    "due_date": "2025-04-24"
-  },
-  {
-    "id": 7,
-    "text": "do taxes",
-    "completed": false,
-    "due_date": "2025-05-07"
   }
 ]

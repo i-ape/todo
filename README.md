@@ -92,6 +92,12 @@ todo list
 todo add "Write report @work #priority"
 todo tags @work
 
+
+current puzzle, more human but short
+todo add "Gym @health" every mon,wed,fri
+todo add "Standup meeting @work" every weekday @ 09:00
+todo add "Call mom" every sunday @ 18:00
+
 ## 🧠 Learning Goals
 
 ✅ Structs & methods

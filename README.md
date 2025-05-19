@@ -114,14 +114,30 @@ todo add "Call mom" every sunday @ 18:00
 
 ---
 
-🔮 Future Ideas
+## 🔮 Future Ideas
 
-Cobra or urfave CLI parser
+Advanced tagging system (#tag, @context, filter/search by tag)
 
-Task priorities, x
+Recurring tasks (e.g. daily, weekly, every Mon,Wed)
 
-Tags & filters, x
+Time-specific reminders (e.g. at 10am, 8:30p)
 
-Weekly/agenda views
+Agenda/week views (todo agenda, todo week)
 
-Notification integrations
+fzf-powered interactive mode (todo pick, todo edit --fzf)
+
+Task priorities (high, medium, low — visual indicators)
+
+Archiving/completed history (todo archive, todo stats)
+
+Multi-task selection (bulk delete/done/edit)
+
+Task templates/snippets (e.g. meeting prep, habit task)
+
+Custom aliasing system (e.g. shortcut commands or templates)
+
+Sync/export support (e.g. sync to GitHub issues, export CSV)
+
+Optional Bubble Tea TUI (interactive full-screen mode)
+
+Push notifications/integrations (via cron, ntfy, or APIs)

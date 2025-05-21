@@ -8,5 +8,16 @@
     "id": 4,
     "text": "Write documentation",
     "completed": false
+  },
+  {
+    "id": 3,
+    "text": "wank",
+    "completed": false,
+    "recurring": "every friday",
+    "until": "2025-08-21",
+    "priority": "medium",
+    "tags": [
+      "@home"
+    ]
   }
 ]

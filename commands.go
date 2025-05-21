@@ -112,35 +112,40 @@ func selectTasksWithFzf(multi bool) ([]todo.Task, error) {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	options := []string{}
-	idMap := map[string]todo.Task{}
+	// FZF available? Use it
+	if _, err := exec.LookPath("fzf"); err == nil {
+		if multi {
+			return todo.SelectMultipleTasksFzf(tasks)
+		}
+		task, err := todo.SelectTaskFzf(tasks)
+		if err != nil {
+			return nil, err
+		}
+		return []todo.Task{task}, nil
+	}
+
+	// ❌ FZF not found: fallback to manual
+	fmt.Println("fzf not found, fallback to manual input")
 	for _, t := range tasks {
-		label := fmt.Sprintf("%d: %s", t.ID, t.Text)
-		options = append(options, label)
-		idMap[label] = t
+		fmt.Printf("%d: %s\n", t.ID, t.Text)
 	}
 
-	args := []string{}
-	if multi {
-		args = append(args, "--multi")
-	}
-
-	cmd := exec.Command("fzf", args...)
-	cmd.Stdin = strings.NewReader(strings.Join(options, "\n"))
-	out, err := cmd.Output()
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("> Enter ID: ")
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(input)
+	id, err := strconv.Atoi(input)
 	if err != nil {
-		return nil, fmt.Errorf("fzf error: %w", err)
+		return nil, fmt.Errorf("invalid ID")
 	}
 
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	var selected []todo.Task
-	for _, line := range lines {
-		if task, ok := idMap[line]; ok {
-			selected = append(selected, task)
+	for _, t := range tasks {
+		if t.ID == id {
+			return []todo.Task{t}, nil
 		}
 	}
 
-	return selected, nil
+	return nil, fmt.Errorf("task not found")
 }
 
 // --- Handlers ---

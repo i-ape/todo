@@ -85,6 +85,7 @@ go build -o todo
 - todo tags [@tag|#tag]         → Filter tasks by tag
 
 ## Example
+
 ```sh
 todo add "Finish writing blog post"
 todo due 1 2024-04-10

@@ -106,26 +106,30 @@ func HandleCommands() {
 
 // --- FZF Selector ---
 
+var disableFzf bool 
+
 func selectTasksWithFzf(multi bool) ([]todo.Task, error) {
 	tasks, err := todo.LoadTasks()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	// FZF available? Use it
-	if _, err := exec.LookPath("fzf"); err == nil {
-		if multi {
-			return todo.SelectMultipleTasksFzf(tasks)
+	// --no-fzf disables interactive mode
+	if !disableFzf {
+		if _, err := exec.LookPath("fzf"); err == nil {
+			if multi {
+				return todo.SelectMultipleTasksFzf(tasks)
+			}
+			task, err := todo.SelectTaskFzf(tasks)
+			if err != nil {
+				return nil, err
+			}
+			return []todo.Task{task}, nil
 		}
-		task, err := todo.SelectTaskFzf(tasks)
-		if err != nil {
-			return nil, err
-		}
-		return []todo.Task{task}, nil
 	}
 
-	// ❌ FZF not found: fallback to manual
-	fmt.Println("fzf not found, fallback to manual input")
+	// fallback to manual selection
+	fmt.Println("FZF disabled or not found, fallback to manual input")
 	for _, t := range tasks {
 		fmt.Printf("%d: %s\n", t.ID, t.Text)
 	}
@@ -144,9 +148,9 @@ func selectTasksWithFzf(multi bool) ([]todo.Task, error) {
 			return []todo.Task{t}, nil
 		}
 	}
-
 	return nil, fmt.Errorf("task not found")
 }
+
 
 // --- Handlers ---
 
@@ -300,7 +304,8 @@ func handleReset() {
 // --- Help ---
 
 func printHelp() {
-	fmt.Println(`📝 Usage:
+	fmt.Println(`
+📝 Usage:
   todo add [text] [due?]       → Add new task
   todo list                    → List all tasks
   todo done                    → Mark one or more tasks done
@@ -308,7 +313,14 @@ func printHelp() {
   todo delete                  → Delete one or more tasks
   todo edit                    → Edit a task
   todo search [keyword]        → Search task text
+  todo tag                     → Edit task tags
   todo clear                   → Clear all tasks
   todo reset                   → Delete tasks.json
-  todo help                    → Show help`)
-}
+  todo help                    → Show help
+
+💡 Flags:
+  --no-fzf                     → Disable FZF interactive mode
+
+🔤 Aliases:
+  a, ls, d, rm, clr, r, s, del, h, ?, -h, --help`)
+;

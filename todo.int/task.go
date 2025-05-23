@@ -26,6 +26,17 @@ type Task struct {
 	Tags      []string `json:"tags,omitempty"` // [] = slice
 }
 
+// flags for the parsing
+type ListFilterOptions struct {
+	ShowDone    bool
+	ShowPending bool
+	TodayOnly   bool
+	OverdueOnly bool
+	JSONOutput  bool
+	Tag         string
+	Priority    string
+}
+
 // AddTask adds a task
 func AddTask(text string) error {
 	tasks, err := LoadTasks()
@@ -161,7 +172,6 @@ func containsAllTags(taskTags, filterTags []string) bool {
 	}
 	return true
 }
-
 
 // MarkTaskDone marks a task as completed
 func MarkTaskDone(input string) error {
@@ -309,7 +319,6 @@ func UpdateTags(input string, add []string, remove []string) error {
 	}
 	return SaveTasks(tasks)
 }
-
 
 // SearchTasks displays tasks that contain a keyword
 func SearchTasks(keyword string) {

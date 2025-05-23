@@ -18,9 +18,45 @@ func AddTask(text, due string) error {
 }
 
 func handleList() {
-	tags := os.Args[2:] // all arguments after `list` = filters
-	todo.ListTasks(tags...)
+	args := os.Args[2:] // everything after "list"
+	showDone := false
+	showPending := false
+	todayOnly := false
+	overdueOnly := false
+	jsonOut := false
+	tagFilter := ""
+	priorityFilter := ""
+
+	for _, arg := range args {
+		switch {
+		case arg == "--done":
+			showDone = true
+		case arg == "--pending":
+			showPending = true
+		case arg == "--today":
+			todayOnly = true
+		case arg == "--overdue":
+			overdueOnly = true
+		case arg == "--json":
+			jsonOut = true
+		case strings.HasPrefix(arg, "--tag="):
+			tagFilter = strings.TrimPrefix(arg, "--tag=")
+		case strings.HasPrefix(arg, "--priority="):
+			priorityFilter = strings.TrimPrefix(arg, "--priority=")
+		}
+	}
+
+	todo.ListTasksWithFilters(todo.ListFilterOptions{
+		ShowDone:     showDone,
+		ShowPending:  showPending,
+		TodayOnly:    todayOnly,
+		OverdueOnly:  overdueOnly,
+		JSONOutput:   jsonOut,
+		Tag:          tagFilter,
+		Priority:     priorityFilter,
+	})
 }
+
 
 func MarkTaskDone(input string) error {
 	return todo.MarkTaskDone(input)

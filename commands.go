@@ -22,7 +22,6 @@ func handleList() {
 	todo.ListTasks(tags...)
 }
 
-
 func MarkTaskDone(input string) error {
 	return todo.MarkTaskDone(input)
 }
@@ -106,7 +105,7 @@ func HandleCommands() {
 
 // --- FZF Selector ---
 
-var disableFzf bool 
+var disableFzf bool
 
 func selectTasksWithFzf(multi bool) ([]todo.Task, error) {
 	tasks, err := todo.LoadTasks()
@@ -150,7 +149,6 @@ func selectTasksWithFzf(multi bool) ([]todo.Task, error) {
 	}
 	return nil, fmt.Errorf("task not found")
 }
-
 
 // --- Handlers ---
 
@@ -283,8 +281,6 @@ func handleTags() {
 	fmt.Println("✅ Tags updated.")
 }
 
-
-
 func handleClear() {
 	if err := ClearTasks(); err != nil {
 		fmt.Println("Error:", err)
@@ -319,8 +315,17 @@ func printHelp() {
   todo help                    → Show help
 
 💡 Flags:
-  --no-fzf                     → Disable FZF interactive mode
+  --no-fzf                      → Disable FZF interactive mode
+  --done						→ Show only completed tasks
+  --pending						→ Show only incomplete tasks
+  --tag=work					→ Filter by tag
+  --priority=high				→ Filter by priority
+  --today						→ Due today
+  --overdue						→ Show overdue tasks
+  --json 						→ Output JSON format
 
 🔤 Aliases:
   a, ls, d, rm, clr, r, s, del, h, ?, -h, --help`)
-};
+}
+
+

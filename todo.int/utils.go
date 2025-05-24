@@ -23,3 +23,25 @@ func parseTags(input string) []string {
 	}
 	return tags
 }
+
+func parseFlags(args []string) (command string, commandArgs []string, flags map[string]string) {
+	flags = make(map[string]string)
+	command = ""
+	commandArgs = []string{}
+
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "--") {
+			if strings.Contains(arg, "=") {
+				parts := strings.SplitN(arg[2:], "=", 2)
+				flags[parts[0]] = parts[1]
+			} else {
+				flags[arg[2:]] = "true"
+			}
+		} else if command == "" {
+			command = arg
+		} else {
+			commandArgs = append(commandArgs, arg)
+		}
+	}
+	return
+}

@@ -16,6 +16,7 @@ import (
 )
 
 // --- Task Management Functions ---
+var disableFzf bool
 
 func AddTask(text, due string) error {
 	return todo.AddTaskWithDueDate(text, due)
@@ -161,6 +162,16 @@ func SearchTasks(keyword string) {
 // --- CLI Command Dispatcher ---
 
 func HandleCommands() {
+	// Check for flags like --no-fzf before routing
+	for i := 1; i < len(os.Args); i++ {
+		if os.Args[i] == "--no-fzf" {
+			disableFzf = true
+			// remove the flag so it doesn't interfere with command parsing
+			os.Args = append(os.Args[:i], os.Args[i+1:]...)
+			break
+		}
+	}
+
 	if len(os.Args) < 2 {
 		printHelp()
 		return
@@ -217,7 +228,7 @@ func HandleCommands() {
 
 // --- FZF Selector ---
 
-var disableFzf bool
+
 
 func selectTasksWithFzf(multi bool) ([]todo.Task, error) {
 	tasks, err := todo.LoadTasks()
@@ -438,6 +449,3 @@ func printHelp() {
 
 🔤 Aliases:
   a, ls, d, rm, clr, r, s, del, h, ?, -h, --help`)
-}
-
-

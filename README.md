@@ -105,14 +105,14 @@ todo list --tag=work --priority=high --pending --json
 
 ## flags
 
---no-fzf	Disable fuzzy picker (manual fallback)
---done	Show only completed tasks
---pending	Show only incomplete tasks
---tag=work	Filter by tag
---priority=high	Filter by priority
---today	Tasks due today
---overdue	Show overdue tasks
---json	Output tasks in JSON
+--no-fzf Disable fuzzy picker (manual fallback)
+--done Show only completed tasks
+--pending Show only incomplete tasks
+--tag=work Filter by tag
+--priority=high Filter by priority
+--today Tasks due today
+--overdue Show overdue tasks
+--json Output tasks in JSON
 
 ## 🧠 Learning Goals
 

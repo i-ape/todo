@@ -40,13 +40,12 @@ chmod +x todo-cli
 
 ## 📂 Project Structure
 
-todo-cli/
-
-- │── main.go          # Entry point, calls command handlers
-- │── task.go          # Task struct and related functions
-- │── storage.go       # Reads/Writes tasks to a JSON file
-- │── commands.go      # CLI command handlers
-- │── tasks.json       # JSON file (created at runtime)
+todo/
+├── main.go          # Entry point, dispatch commands
+├── commands.go      # All CLI logic (add/edit/list/etc)
+├── task.go          # Task struct and core logic
+├── storage.go       # JSON file read/write
+├── tasks.json       # Auto-generated task data
 
 ## 🔧 Installation
 
@@ -87,29 +86,42 @@ go build -o todo
 ## Example
 
 ```sh
-todo add "Finish writing blog post"
-todo due 1 2024-04-10
-todo list
-todo add "Write report @work #priority"
-todo tags @work
-
-
-current puzzle, more human but short
+todo add "Write blog post"
+todo add "Call mom every sunday"
+todo list --tag=home
+todo done 1
+todo due 2 tomorrow
+todo delete 1
+todo edit
+todo search "report"
+todo tag
+todo clear
+todo reset
 todo add "Gym @health" every mon,wed,fri
 todo add "Standup meeting @work" every weekday @ 09:00
 todo add "Call mom" every sunday @ 18:00
+todo list --tag=work --priority=high --pending --json
+
+
+## flags
+
+--no-fzf	Disable fuzzy picker (manual fallback)
+--done	Show only completed tasks
+--pending	Show only incomplete tasks
+--tag=work	Filter by tag
+--priority=high	Filter by priority
+--today	Tasks due today
+--overdue	Show overdue tasks
+--json	Output tasks in JSON
 
 ## 🧠 Learning Goals
 
 ✅ Structs & methods
-
 ✅ File I/O with JSON
-
 ✅ Command-line tools
-
 ✅ Natural language date parsing
-
-⏳ Potential: concurrency, custom date DSL, Bubble Tea UI
+✅ Optional interactivity with FZF
+⏳ Potential: concurrency, custom DSL, Bubble Tea UI
 
 
 
@@ -142,3 +154,21 @@ Sync/export support (e.g. sync to GitHub issues, export CSV)
 Optional Bubble Tea TUI (interactive full-screen mode)
 
 Push notifications/integrations (via cron, ntfy, or APIs)
+
+ 🏷️ Advanced tagging system (#tag, @context, filter/search/assign)
+
+ 🔁 Recurring tasks (e.g. every Monday at 10:00)
+
+ 🗓️ Calendar / agenda views (todo week)
+
+ 🚨 Notifications (ntfy, cron, push)
+
+ 📊 Stats & history (archive completed tasks)
+
+ 🔌 Integration with GitHub issues, CSV export
+
+ 🎭 Templates/snippets (todo new meeting)
+
+ 💅 Bubble Tea full-screen TUI
+
+ 🧠 Custom aliases / shortcuts

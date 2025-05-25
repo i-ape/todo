@@ -451,4 +451,3 @@ func printHelp() {
   a, ls, d, rm, clr, r, s, del, h, ?, -h, --help`)
 }
 
-

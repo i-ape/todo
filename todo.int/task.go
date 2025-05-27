@@ -23,7 +23,9 @@ type Task struct {
 	Until     string   `json:"until,omitempty"`
 	Count     int      `json:"count,omitempty"`
 	Priority  string   `json:"priority,omitempty"`
-	Tags      []string `json:"tags,omitempty"` // [] = slice
+	Tags      []string `json:"tags,omitempty"`     // [] = slice
+	DueTime   string   `json:"due_time,omitempty"` // e.g. "18:00"
+	Duration  string   `json:"duration,omitempty"` // e.g. "1h"
 }
 
 // flags for the parsing
@@ -53,10 +55,12 @@ func AddTaskWithDueDate(text, due string) error {
 	tasks, _ := LoadTasks()
 
 	parsedDue := ""
+	dueTime := ""
+	duration := ""
 	recurring := ""
 	until := ""
 	count := 0
-	priority := "medium" // default
+	priority := "medium"
 
 	// ✅ Priority: [high] / [low]
 	textLower := strings.ToLower(text)
@@ -83,19 +87,19 @@ func AddTaskWithDueDate(text, due string) error {
 
 	// ✅ Due date or recurring
 	if due != "" {
-		dueLower := strings.ToLower(due)
-		switch dueLower {
+		lower := strings.ToLower(due)
+		switch lower {
 		case "daily", "weekly", "monthly", "yearly", "every monday", "every friday":
-			recurring = dueLower
-			// Optional: set a future limit
-			until = time.Now().AddDate(0, 3, 0).Format("2006-01-02") // example: 3 months from now
-			count = 0                                                // 0 = unlimited
+			recurring = lower
+			until = time.Now().AddDate(0, 3, 0).Format("2006-01-02")
 		default:
-			dt, err := ParseNaturalDate(due)
+			date, t, dur, err := ParseDateTimeDuration(due)
 			if err != nil {
 				return err
 			}
-			parsedDue = dt
+			parsedDue = date
+			dueTime = t
+			duration = dur
 		}
 	}
 
@@ -105,6 +109,8 @@ func AddTaskWithDueDate(text, due string) error {
 		Text:      strings.TrimSpace(text),
 		Completed: false,
 		DueDate:   parsedDue,
+		DueTime:   dueTime,
+		Duration:  duration,
 		Recurring: recurring,
 		Until:     until,
 		Count:     count,
@@ -115,6 +121,7 @@ func AddTaskWithDueDate(text, due string) error {
 	tasks = append(tasks, newTask)
 	return SaveTasks(tasks)
 }
+
 
 // ListTasks displays all tasks
 func ListTasks(filterTags ...string) {

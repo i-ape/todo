@@ -85,6 +85,41 @@ func ParseNaturalDate(input string) (string, error) {
 	return "", fmt.Errorf("could not parse date: %s", input)
 }
 
+// ParseDateTimeDuration parses a string like "friday @ 18:00 for 1h"
+func ParseDateTimeDuration(input string) (date string, timeStr string, duration string, err error) {
+	main := input
+	if at := strings.Index(input, "@"); at != -1 {
+		main = strings.TrimSpace(input[:at])
+		rest := strings.TrimSpace(input[at+1:])
+
+		parts := strings.Split(rest, "for")
+		timeStr = strings.TrimSpace(parts[0])
+		if len(parts) > 1 {
+			duration = strings.TrimSpace(parts[1])
+		}
+	}
+
+	date, err = ParseNaturalDate(main)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	// validate HH:MM
+	if timeStr != "" {
+		if _, err := time.Parse("15:04", timeStr); err != nil {
+			return "", "", "", fmt.Errorf("invalid time format: %s", timeStr)
+		}
+	}
+
+	// validate duration (like 30m, 1h, 90m)
+	if duration != "" {
+		if _, err := time.ParseDuration(duration); err != nil {
+			return "", "", "", fmt.Errorf("invalid duration: %s", duration)
+		}
+	}
+
+	return date, timeStr, duration, nil
+}
 
 // 📆 Helpers
 func inDays(n int) func(time.Time) string {

@@ -102,6 +102,8 @@ todo add "Standup meeting @work" every weekday @ 09:00
 todo add "Call mom" every sunday @ 18:00
 todo list --tag=work --priority=high --pending --json
 todo add "Meeting @work" friday @ 14:00 for 45m
+todo add "Call mom @family" sunday @ 18:00 for 1h for 3weeks
+
 
 
 

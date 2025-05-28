@@ -93,13 +93,15 @@ func AddTaskWithDueDate(text, due string) error {
 			recurring = lower
 			until = time.Now().AddDate(0, 3, 0).Format("2006-01-02")
 		default:
-			date, t, dur, err := ParseDateTimeDuration(due)
+			date, t, dur, recur, repeatUntil, err := ParseDateTimeDurationRepeat(due)
 			if err != nil {
 				return err
 			}
 			parsedDue = date
 			dueTime = t
 			duration = dur
+			recurring = recur
+			until = repeatUntil
 		}
 	}
 
@@ -121,7 +123,6 @@ func AddTaskWithDueDate(text, due string) error {
 	tasks = append(tasks, newTask)
 	return SaveTasks(tasks)
 }
-
 
 // ListTasks displays all tasks
 func ListTasks(filterTags ...string) {

@@ -13,10 +13,27 @@ import (
 	todo "todo/todo.int"
 
 	"github.com/fatih/color"
+	tea "github.com/charmbracelet/bubbletea"
+
 )
 
 // --- Task Management Functions ---
-var disableFzf bool
+var disableFzf, enableTui bool
+
+for i := 1; i < len(os.Args); i++ {
+	arg := os.Args[i]
+	if arg == "--no-fzf" {
+		disableFzf = true
+		// Remove so it doesn't interfere with args
+		os.Args = append(os.Args[:i], os.Args[i+1:]...)
+		i--
+	}
+	if arg == "--tui" {
+		enableTui = true
+		os.Args = append(os.Args[:i], os.Args[i+1:]...)
+		i--
+	}
+}
 
 func AddTask(text, due string) error {
 	return todo.AddTaskWithDueDate(text, due)
@@ -228,51 +245,7 @@ func HandleCommands() {
 
 // --- FZF Selector ---
 
-
-
-func selectTasksWithFzf(multi bool) ([]todo.Task, error) {
-	tasks, err := todo.LoadTasks()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load tasks: %w", err)
-	}
-
-	// --no-fzf disables interactive mode
-	if !disableFzf {
-		if _, err := exec.LookPath("fzf"); err == nil {
-			if multi {
-				return todo.SelectMultipleTasksFzf(tasks)
-			}
-			task, err := todo.SelectTaskFzf(tasks)
-			if err != nil {
-				return nil, err
-			}
-			return []todo.Task{task}, nil
-		}
-	}
-
-	// fallback to manual selection
-	fmt.Println("FZF disabled or not found, fallback to manual input")
-	for _, t := range tasks {
-		fmt.Printf("%d: %s\n", t.ID, t.Text)
-	}
-
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("> Enter ID: ")
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	id, err := strconv.Atoi(input)
-	if err != nil {
-		return nil, fmt.Errorf("invalid ID")
-	}
-
-	for _, t := range tasks {
-		if t.ID == id {
-			return []todo.Task{t}, nil
-		}
-	}
-	return nil, fmt.Errorf("task not found")
-}
-
+selectTasksWithFzf
 // --- Handlers ---
 
 func handleAdd() {

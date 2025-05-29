@@ -103,9 +103,8 @@ todo add "Call mom" every sunday @ 18:00
 todo list --tag=work --priority=high --pending --json
 todo add "Meeting @work" friday @ 14:00 for 45m
 todo add "Call mom @family" sunday @ 18:00 for 1h for 3weeks
-
-
-
+todo tui        # launch interactive interface
+todo --tui list # use tui selection for list
 
 ## flags
 

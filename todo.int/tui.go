@@ -1,9 +1,8 @@
-package main
+package todo
 
 import (
 	"fmt"
 
-	todo "todo/todo.int"
 	tea "github.com/charmbracelet/bubbletea"
 )
 

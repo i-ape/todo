@@ -18,22 +18,24 @@ import (
 )
 
 // --- Task Management Functions ---
+
 var disableFzf, enableTui bool
 
-for i := 1; i < len(os.Args); i++ {
-	arg := os.Args[i]
-	if arg == "--no-fzf" {
-		disableFzf = true
-		// Remove so it doesn't interfere with args
-		os.Args = append(os.Args[:i], os.Args[i+1:]...)
-		i--
+func init() {
+	for i := 1; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		if arg == "--no-fzf" {
+			disableFzf = true
+			os.Args = append(os.Args[:i], os.Args[i+1:]...)
+			i--
+		}
+		if arg == "--tui" {
+			enableTui = true
+			os.Args = append(os.Args[:i], os.Args[i+1:]...)
+			i--
+		}
 	}
-	if arg == "--tui" {
-		enableTui = true
-		os.Args = append(os.Args[:i], os.Args[i+1:]...)
-		i--
-	}
-}
+} // TODO: launch tea.Program(model)
 
 func AddTask(text, due string) error {
 	return todo.AddTaskWithDueDate(text, due)
@@ -245,7 +247,45 @@ func HandleCommands() {
 
 // --- FZF Selector ---
 
-selectTasksWithFzf
+func selectTasksWithFzf(multi bool) ([]todo.Task, error) {
+	tasks, err := todo.LoadTasks()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	if !disableFzf {
+		if _, err := exec.LookPath("fzf"); err == nil {
+			if multi {
+				return todo.SelectMultipleTasksFzf(tasks)
+			}
+			task, err := todo.SelectTaskFzf(tasks)
+			if err != nil {
+				return nil, err
+			}
+			return []todo.Task{task}, nil
+		}
+	}
+
+	fmt.Println("FZF disabled or not found. Manual selection:")
+	for _, t := range tasks {
+		fmt.Printf("%d: %s\n", t.ID, t.Text)
+	}
+	fmt.Print("> Enter task ID: ")
+	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(input)
+	id, err := strconv.Atoi(input)
+	if err != nil {
+		return nil, fmt.Errorf("invalid ID")
+	}
+
+	for _, t := range tasks {
+		if t.ID == id {
+			return []todo.Task{t}, nil
+		}
+	}
+	return nil, fmt.Errorf("task not found")
+}
 // --- Handlers ---
 
 func handleAdd() {

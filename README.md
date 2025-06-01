@@ -126,7 +126,7 @@ todo pick --json  → Print selected task(s) as JSON
 ✅ Command-line tools
 ✅ Natural language date parsing
 ✅ Optional interactivity with FZF
-⏳ Potential: concurrency, custom DSL, Bubble Tea UI
+⏳ Potential: concurrency, custom DSL, Bubble Tea UI, cron
 
 
 

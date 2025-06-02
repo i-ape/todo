@@ -1,4 +1,4 @@
-package todo
+package main
 
 import (
 	"fmt"
@@ -6,7 +6,9 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	todo "todo/todo.int"
 )
+
 
 type model struct {
 	tasks []todo.Task
@@ -60,17 +62,10 @@ func (m model) View() string {
 	return b.String()
 }
 
-func StartTui() {
-	tasks, err := todo.LoadTasks()
-	if err != nil {
-		fmt.Println("failed to load tasks:", err)
-		os.Exit(1)
-	}
-
-	m := model{tasks: tasks}
-	p := tea.NewProgram(m)
-	if err := p.Start(); err != nil {
-		fmt.Println("TUI error:", err)
+func StartTUI() {
+	p := tea.NewProgram(model{})
+	if _, err := p.Run(); err != nil {
+		fmt.Println("Error running TUI:", err)
 		os.Exit(1)
 	}
 }

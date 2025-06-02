@@ -13,8 +13,6 @@ import (
 	todo "todo/todo.int"
 
 	"github.com/fatih/color"
-	tea "github.com/charmbracelet/bubbletea"
-
 )
 
 // --- Task Management Functions ---
@@ -152,8 +150,6 @@ func isOverdue(date string) bool {
 	return err == nil && time.Now().After(due)
 }
 
-
-
 func MarkTaskDone(input string) error {
 	return todo.MarkTaskDone(input)
 }
@@ -181,14 +177,24 @@ func SearchTasks(keyword string) {
 // --- CLI Command Dispatcher ---
 
 func HandleCommands() {
-	// Check for flags like --no-fzf before routing
+	// Parse flags
 	for i := 1; i < len(os.Args); i++ {
 		if os.Args[i] == "--no-fzf" {
 			disableFzf = true
-			// remove the flag so it doesn't interfere with command parsing
 			os.Args = append(os.Args[:i], os.Args[i+1:]...)
-			break
+			i--
 		}
+		if os.Args[i] == "--tui" {
+			enableTui = true
+			os.Args = append(os.Args[:i], os.Args[i+1:]...)
+			i--
+		}
+	}
+
+	// 🧃 Launch TUI if enabled
+	if enableTui {
+		StartTUI()
+		return
 	}
 
 	if len(os.Args) < 2 {
@@ -286,6 +292,7 @@ func selectTasksWithFzf(multi bool) ([]todo.Task, error) {
 	}
 	return nil, fmt.Errorf("task not found")
 }
+
 // --- Handlers ---
 
 func handleAdd() {
@@ -463,4 +470,3 @@ func printHelp() {
 🔤 Aliases:
   a, ls, d, rm, clr, r, s, del, h, ?, -h, --help`)
 }
-

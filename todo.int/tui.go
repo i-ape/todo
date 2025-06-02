@@ -2,59 +2,75 @@ package todo
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type model struct {
 	tasks []todo.Task
-	index int
+	cursor int
+	quitting bool
 }
 
-func (m model) Init() tea.Cmd { return nil }
-
-func (m model) View() string {
-	s := "🧃 TUI Task Picker:\n\n"
-	for i, t := range m.tasks {
-		cursor := " "
-		if m.index == i {
-			cursor = "👉"
-		}
-		s += fmt.Sprintf("%s %d: %s\n", cursor, t.ID, t.Text)
-	}
-	s += "\n(q to quit, ↑↓ to move, enter to select)"
-	return s
+func (m model) Init() tea.Cmd {
+	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "q", "ctrl+c":
+		case "ctrl+c", "q":
+			m.quitting = true
 			return m, tea.Quit
-		case "up", "k":
-			if m.index > 0 {
-				m.index--
+		case "j", "down":
+			if m.cursor < len(m.tasks)-1 {
+				m.cursor++
 			}
-		case "down", "j":
-			if m.index < len(m.tasks)-1 {
-				m.index++
+		case "k", "up":
+			if m.cursor > 0 {
+				m.cursor--
 			}
-		case "enter":
-			fmt.Println(m.tasks[m.index])
-			return m, tea.Quit
 		}
 	}
 	return m, nil
 }
 
-func StartTUI() {
-	tasks, _ := todo.LoadTasks()
-	p := tea.NewProgram(model{tasks: tasks})
-	p.Start()
+func (m model) View() string {
+	if m.quitting {
+		return "Goodbye 👋\n"
+	}
+
+	var b strings.Builder
+	b.WriteString("📋 Tasks:\n\n")
+	for i, task := range m.tasks {
+		cursor := "  "
+		if m.cursor == i {
+			cursor = "👉"
+		}
+		status := "[ ]"
+		if task.Completed {
+			status = "[✓]"
+		}
+		b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, task.Text))
+	}
+	b.WriteString("\n↑/↓ or j/k to navigate, q to quit\n")
+	return b.String()
 }
 
-func StartTUISelect(multi bool) ([]todo.Task, error) {
-	StartTUI()
-	return nil, fmt.Errorf("TUI selection not yet implemented")
+func StartTui() {
+	tasks, err := todo.LoadTasks()
+	if err != nil {
+		fmt.Println("failed to load tasks:", err)
+		os.Exit(1)
+	}
+
+	m := model{tasks: tasks}
+	p := tea.NewProgram(m)
+	if err := p.Start(); err != nil {
+		fmt.Println("TUI error:", err)
+		os.Exit(1)
+	}
 }

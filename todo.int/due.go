@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+func IsOverdue(date string) bool {
+	due, err := time.Parse("2006-01-02", date)
+	return err == nil && time.Now().After(due)
+}
+
 // 📌 Centralized abbreviation map — natural language → date string
 var abbreviationMap = map[string]func(time.Time) string{
 	// 🗓️ Absolute

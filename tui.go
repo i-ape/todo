@@ -5,14 +5,15 @@ import (
 	"os"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
 	todo "todo/todo.int"
+
+	tea "github.com/charmbracelet/bubbletea"
+	color "github.com/fatih/color"
 )
 
-
 type model struct {
-	tasks []todo.Task
-	cursor int
+	tasks    []todo.Task
+	cursor   int
 	quitting bool
 }
 
@@ -52,9 +53,11 @@ func (m model) View() string {
 		if m.cursor == i {
 			cursor = "👉"
 		}
-		status := "[ ]"
+		status := color.CyanString("[ ]")
 		if task.Completed {
-			status = "[✓]"
+			status = color.GreenString("[✓]")
+		} else if task.DueDate != "" && todo.IsOverdue(task.DueDate) {
+			status = color.RedString("[✗]")
 		}
 		b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, task.Text))
 	}
@@ -63,7 +66,13 @@ func (m model) View() string {
 }
 
 func StartTUI() {
-	p := tea.NewProgram(model{})
+	tasks, err := todo.LoadTasks()
+	if err != nil {
+		fmt.Println("Failed to load tasks:", err)
+		os.Exit(1)
+	}
+
+	p := tea.NewProgram(model{tasks: tasks})
 	if _, err := p.Run(); err != nil {
 		fmt.Println("Error running TUI:", err)
 		os.Exit(1)

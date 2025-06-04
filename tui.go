@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -44,7 +45,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if err := todo.SaveTasks(m.tasks); err != nil {
 				fmt.Println("❌ Failed to save task:", err)
 			}
+		case "n":
+			fmt.Print("🆕 Task text: ")
+			reader := bufio.NewReader(os.Stdin)
+			newText, _ := reader.ReadString('\n')
+			newText = strings.TrimSpace(newText)
 
+			newTask := todo.Task{
+				ID:        len(m.tasks) + 1,
+				Text:      newText,
+				Completed: false,
+			}
+			m.tasks = append(m.tasks, newTask)
+			_ = todo.SaveTasks(m.tasks)
 		}
 	}
 	return m, nil
@@ -84,7 +97,7 @@ func (m model) View() string {
 
 		b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, label))
 	}
-	b.WriteString("\n↑/↓ or j/k to navigate, q to quit\n")
+	b.WriteString("\n↑↓/jk = move, space = done, e = edit, n = new, q = quit\n")
 	return b.String()
 }
 

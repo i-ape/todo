@@ -28,13 +28,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			m.quitting = true
 			return m, tea.Quit
+
 		case "j", "down":
 			if m.cursor < len(m.tasks)-1 {
 				m.cursor++
 			}
+
 		case "k", "up":
 			if m.cursor > 0 {
 				m.cursor--
+			}
+
+		case "enter":
+			m.tasks[m.cursor].Completed = !m.tasks[m.cursor].Completed
+			if err := todo.SaveTasks(m.tasks); err != nil {
+				fmt.Println("❌ Failed to save task:", err)
 			}
 		}
 	}
@@ -51,7 +59,7 @@ func (m model) View() string {
 	for i, task := range m.tasks {
 		cursor := "  "
 		if m.cursor == i {
-			cursor = "👉"
+			cursor = "▶" // or "▸", "▶", "›", "→", "➤"
 		}
 		status := color.CyanString("[ ]")
 		if task.Completed {
@@ -59,8 +67,7 @@ func (m model) View() string {
 		} else if task.DueDate != "" && todo.IsOverdue(task.DueDate) {
 			status = color.RedString("[✗]")
 		}
-		b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, task.Text))
-	}
+		b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, task.Text))	}
 	b.WriteString("\n↑/↓ or j/k to navigate, q to quit\n")
 	return b.String()
 }

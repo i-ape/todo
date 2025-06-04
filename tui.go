@@ -39,11 +39,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor--
 			}
 
-		case "enter":
+		case "enter", " ":
 			m.tasks[m.cursor].Completed = !m.tasks[m.cursor].Completed
 			if err := todo.SaveTasks(m.tasks); err != nil {
 				fmt.Println("❌ Failed to save task:", err)
 			}
+
 		}
 	}
 	return m, nil
@@ -67,7 +68,8 @@ func (m model) View() string {
 		} else if task.DueDate != "" && todo.IsOverdue(task.DueDate) {
 			status = color.RedString("[✗]")
 		}
-		b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, task.Text))	}
+		b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, task.Text))
+	}
 	b.WriteString("\n↑/↓ or j/k to navigate, q to quit\n")
 	return b.String()
 }

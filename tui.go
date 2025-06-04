@@ -68,7 +68,21 @@ func (m model) View() string {
 		} else if task.DueDate != "" && todo.IsOverdue(task.DueDate) {
 			status = color.RedString("[✗]")
 		}
-		b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, task.Text))
+		label := task.Text
+
+		if task.DueDate != "" {
+			label += color.YellowString(" 📅 %s", task.DueDate)
+		}
+		if len(task.Tags) > 0 {
+			label += " 🏷️ " + strings.Join(task.Tags, ", ")
+		}
+		if task.Priority == "high" {
+			label += color.RedString(" 🔥")
+		} else if task.Priority == "low" {
+			label += color.BlueString(" ⬇")
+		}
+
+		b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, label))
 	}
 	b.WriteString("\n↑/↓ or j/k to navigate, q to quit\n")
 	return b.String()

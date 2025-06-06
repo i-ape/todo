@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	// "bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -26,6 +26,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
+
 		case "ctrl+c", "q":
 			m.quitting = true
 			return m, tea.Quit
@@ -45,19 +46,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if err := todo.SaveTasks(m.tasks); err != nil {
 				fmt.Println("❌ Failed to save task:", err)
 			}
-		case "n":
-			fmt.Print("🆕 Task text: ")
-			reader := bufio.NewReader(os.Stdin)
-			newText, _ := reader.ReadString('\n')
-			newText = strings.TrimSpace(newText)
 
-			newTask := todo.Task{
-				ID:        len(m.tasks) + 1,
-				Text:      newText,
-				Completed: false,
+		case "n":
+			text, ok := prompt("📝 Enter new task:")
+			if ok && text != "" {
+				newTask := todo.Task{
+					ID:        len(m.tasks) + 1,
+					Text:      text,
+					Completed: false,
+				}
+				m.tasks = append(m.tasks, newTask)
+				_ = todo.SaveTasks(m.tasks)
 			}
-			m.tasks = append(m.tasks, newTask)
-			_ = todo.SaveTasks(m.tasks)
 		}
 	}
 	return m, nil
@@ -97,8 +97,55 @@ func (m model) View() string {
 
 		b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, label))
 	}
-	b.WriteString("\n↑↓/jk = move, space = done, e = edit, n = new, q = quit\n")
+	b.WriteString("\n↑/↓ or j/k to navigate, [n] new task, [enter] toggle complete, [q] quit\n")
 	return b.String()
+}
+
+// Prompt Model
+
+type promptModel struct {
+	prompt  string
+	value   string
+	confirm bool
+	cancel  bool
+}
+
+func (p promptModel) Init() tea.Cmd { return nil }
+
+func (p promptModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "enter":
+			p.confirm = true
+			return p, tea.Quit
+		case "esc":
+			p.cancel = true
+			return p, tea.Quit
+		case "backspace":
+			if len(p.value) > 0 {
+				p.value = p.value[:len(p.value)-1]
+			}
+		default:
+			p.value += msg.String()
+		}
+	}
+	return p, nil
+}
+
+func (p promptModel) View() string {
+	return fmt.Sprintf("\n%s\n> %s", p.prompt, p.value)
+}
+
+func prompt(promptText string) (string, bool) {
+	pm := promptModel{prompt: promptText}
+	p := tea.NewProgram(pm)
+	m, err := p.Run()
+	if err != nil {
+		return "", false
+	}
+	final := m.(promptModel)
+	return strings.TrimSpace(final.value), final.confirm && !final.cancel
 }
 
 func StartTUI() {
@@ -107,7 +154,6 @@ func StartTUI() {
 		fmt.Println("Failed to load tasks:", err)
 		os.Exit(1)
 	}
-
 	p := tea.NewProgram(model{tasks: tasks})
 	if _, err := p.Run(); err != nil {
 		fmt.Println("Error running TUI:", err)

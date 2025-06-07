@@ -58,6 +58,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.tasks = append(m.tasks, newTask)
 				_ = todo.SaveTasks(m.tasks)
 			}
+		case "e":
+			task := &m.tasks[m.cursor]
+			newText, ok := prompt("✏️ Edit task:")
+			if ok && newText != "" {
+				task.Text = newText
+				_ = todo.SaveTasks(m.tasks)
+			}
 		}
 	}
 	return m, nil

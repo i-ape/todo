@@ -24,6 +24,7 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+
 	case tea.KeyMsg:
 		switch msg.String() {
 
@@ -41,34 +42,49 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor--
 			}
 
-		case "enter", " ":
+		case " " , "enter":
 			m.tasks[m.cursor].Completed = !m.tasks[m.cursor].Completed
-			if err := todo.SaveTasks(m.tasks); err != nil {
-				fmt.Println("❌ Failed to save task:", err)
+			_ = todo.SaveTasks(m.tasks)
+
+		case "x", "backspace":
+			m.tasks = append(m.tasks[:m.cursor], m.tasks[m.cursor+1:]...)
+			if m.cursor >= len(m.tasks) && m.cursor > 0 {
+				m.cursor--
+			}
+			_ = todo.SaveTasks(m.tasks)
+
+		case "d":
+			newDue, ok := prompt("📅 Enter new due date:")
+			if ok {
+				parsed, err := todo.ParseNaturalDate(newDue)
+				if err == nil {
+					m.tasks[m.cursor].DueDate = parsed
+					_ = todo.SaveTasks(m.tasks)
+				}
+			}
+
+		case "e":
+			newText, ok := prompt("✏️ Edit task text:")
+			if ok && strings.TrimSpace(newText) != "" {
+				m.tasks[m.cursor].Text = strings.TrimSpace(newText)
+				_ = todo.SaveTasks(m.tasks)
 			}
 
 		case "n":
-			text, ok := prompt("📝 Enter new task:")
-			if ok && text != "" {
-				newTask := todo.Task{
-					ID:        len(m.tasks) + 1,
-					Text:      text,
-					Completed: false,
+			newTask, ok := prompt("➕ New task:")
+			if ok && strings.TrimSpace(newTask) != "" {
+				task := todo.Task{
+					ID:   nextID(m.tasks),
+					Text: strings.TrimSpace(newTask),
 				}
-				m.tasks = append(m.tasks, newTask)
-				_ = todo.SaveTasks(m.tasks)
-			}
-		case "e":
-			task := &m.tasks[m.cursor]
-			newText, ok := prompt("✏️ Edit task:")
-			if ok && newText != "" {
-				task.Text = newText
+				m.tasks = append(m.tasks, task)
 				_ = todo.SaveTasks(m.tasks)
 			}
 		}
 	}
 	return m, nil
 }
+
 
 func (m model) View() string {
 	if m.quitting {
@@ -166,4 +182,13 @@ func StartTUI() {
 		fmt.Println("Error running TUI:", err)
 		os.Exit(1)
 	}
+}
+func nextID(tasks []todo.Task) int {
+	max := 0
+	for _, t := range tasks {
+		if t.ID > max {
+			max = t.ID
+		}
+	}
+	return max + 1
 }

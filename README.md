@@ -28,6 +28,7 @@ It covers:
 - Color-coded task listing (due, overdue, complete)
 - Add and edit tags with `@` or `#` syntax
 - Filter tasks by tag (e.g. `todo tags @work`)
+- bubble tea ui
 
 ---
 

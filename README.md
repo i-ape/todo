@@ -119,6 +119,7 @@ todo pick --json  → Print selected task(s) as JSON
 --today Tasks due today
 --overdue Show overdue tasks
 --json Output tasks in JSON
+--tui bubble tea interface
 
 ## 🧠 Learning Goals
 
@@ -178,3 +179,6 @@ Push notifications/integrations (via cron, ntfy, or APIs)
  💅 Bubble Tea full-screen TUI
 
  🧠 Custom aliases / shortcuts
+
+
+ test

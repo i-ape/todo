@@ -245,6 +245,9 @@ func HandleCommands() {
 		handleTags()
 	case "help":
 		printHelp()
+	case "tui":
+		StartTUI()
+
 	default:
 		fmt.Println("❌ Unknown command:", cmd)
 		printHelp()
@@ -466,6 +469,8 @@ func printHelp() {
   --today						→ Due today
   --overdue						→ Show overdue tasks
   --json 						→ Output JSON format
+  --tui 						→ bubble tea interface
+
 
 🔤 Aliases:
   a, ls, d, rm, clr, r, s, del, h, ?, -h, --help`)

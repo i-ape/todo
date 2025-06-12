@@ -19,5 +19,10 @@
     "tags": [
       "@home"
     ]
+  },
+  {
+    "id": 5,
+    "text": "make app pretty and quick",
+    "completed": false
   }
 ]

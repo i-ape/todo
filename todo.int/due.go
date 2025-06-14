@@ -7,66 +7,41 @@ import (
 	"time"
 )
 
+//
+// 📆 OVERDUE CHECK
+//
+
+// IsOverdue returns true if the date is before today.
 func IsOverdue(date string) bool {
 	due, err := time.Parse("2006-01-02", date)
 	return err == nil && time.Now().After(due)
 }
 
-// 📌 Centralized abbreviation map — natural language → date string
-var abbreviationMap = map[string]func(time.Time) string{
-	// 🗓️ Absolute
-	"td": formatToday, "tdy": formatToday, "today": formatToday,
-	"tm": inDays(1), "tmmrw": inDays(1), "next": inDays(1),
-	"af": inDays(2), "aft": inDays(2),
-	"yd": inDays(-1), "yst": inDays(-1),
-	"now": formatToday, "soon": inDays(3), "later": inDays(7),
-	"someday": func(t time.Time) string { return "" },
+//
+// 🧠 NATURAL LANGUAGE DATE PARSING
+//
 
-	// 🗓️ Weeks
-	"nw": inDays(7), "nxtwk": inDays(7),
-	"n2w": inDays(14), "n3w": inDays(21),
-	"eowk": nextWeekday(time.Friday),
-
-	// 🗓️ Months
-	"nm": inMonths(1), "em": endOfMonth,
-
-	// 🗓️ Weekdays (next)
-	"mon": nextWeekday(time.Monday), "tue": nextWeekday(time.Tuesday),
-	"wed": nextWeekday(time.Wednesday), "thu": nextWeekday(time.Thursday),
-	"fri": nextWeekday(time.Friday), "sat": nextWeekday(time.Saturday),
-	"sun": nextWeekday(time.Sunday),
-
-	"nxtmon": nextWeekday(time.Monday), "nxfri": nextWeekday(time.Friday),
-
-	// 🕓 Misc
-	"eod": formatToday,
-	"ew": func(t time.Time) string {
-		return t.AddDate(0, 0, 7-int(t.Weekday())).Format("2006-01-02")
-	},
-}
-
-// 📆 Parses strings like "in 3 days", "fri", "2024-04-25"
+// ParseNaturalDate parses strings like:
+// "tomorrow", "in 3 days", "2024-05-20", "fri", etc.
 func ParseNaturalDate(input string) (string, error) {
 	input = strings.ToLower(strings.TrimSpace(input))
 	now := time.Now()
 
-	// Shorthand: "tomorrow", "fri", etc.
+	// Handle abbreviation shortcut keywords
 	if f, ok := abbreviationMap[input]; ok {
 		return f(now), nil
 	}
 
-	// Handle "in N units"
+	// Handle "in N days/weeks/months" format
 	if strings.HasPrefix(input, "in ") {
 		parts := strings.Fields(input[3:])
 		if len(parts) != 2 {
 			return "", fmt.Errorf("invalid relative date format: %s", input)
 		}
-
 		num, err := strconv.Atoi(parts[0])
 		if err != nil {
 			return "", fmt.Errorf("invalid number in relative date: %v", err)
 		}
-
 		unit := parts[1]
 		switch unit {
 		case "d", "day", "days":
@@ -80,7 +55,7 @@ func ParseNaturalDate(input string) (string, error) {
 		}
 	}
 
-	// Fallback: date strings like "2025-05-02"
+	// Fallback to specific date formats
 	for _, layout := range []string{"2006-01-02", "02-01-2006"} {
 		if t, err := time.Parse(layout, input); err == nil {
 			return t.Format("2006-01-02"), nil
@@ -90,8 +65,13 @@ func ParseNaturalDate(input string) (string, error) {
 	return "", fmt.Errorf("could not parse date: %s", input)
 }
 
-// ParseDateTimeDuration parses a string like "friday @ 18:00 for 1h"
-func ParseDateTimeDuration(input string) (date string, timeStr string, duration string, err error) {
+//
+// ⏰ PARSE DATE + TIME + DURATION SYNTAX
+//
+
+// ParseDateTimeDuration parses strings like:
+// "friday @ 18:00 for 1h" or "tomorrow @ 10:30"
+func ParseDateTimeDuration(input string) (date, timeStr, duration string, err error) {
 	main := input
 	if at := strings.Index(input, "@"); at != -1 {
 		main = strings.TrimSpace(input[:at])
@@ -104,19 +84,20 @@ func ParseDateTimeDuration(input string) (date string, timeStr string, duration 
 		}
 	}
 
+	// Parse main date (e.g. "tomorrow")
 	date, err = ParseNaturalDate(main)
 	if err != nil {
 		return "", "", "", err
 	}
 
-	// validate HH:MM
+	// Validate time format (HH:MM)
 	if timeStr != "" {
 		if _, err := time.Parse("15:04", timeStr); err != nil {
 			return "", "", "", fmt.Errorf("invalid time format: %s", timeStr)
 		}
 	}
 
-	// validate duration (like 30m, 1h, 90m)
+	// Validate duration (e.g. "30m", "1h")
 	if duration != "" {
 		if _, err := time.ParseDuration(duration); err != nil {
 			return "", "", "", fmt.Errorf("invalid duration: %s", duration)
@@ -126,7 +107,49 @@ func ParseDateTimeDuration(input string) (date string, timeStr string, duration 
 	return date, timeStr, duration, nil
 }
 
-// 📆 Helpers
+//
+// 🔠 SHORTCUT KEYWORDS MAP
+//
+
+var abbreviationMap = map[string]func(time.Time) string{
+	// 📆 Day shortcuts
+	"td": formatToday, "tdy": formatToday, "today": formatToday,
+	"tm": inDays(1), "tmmrw": inDays(1), "next": inDays(1),
+	"af": inDays(2), "aft": inDays(2),
+	"yd": inDays(-1), "yst": inDays(-1),
+	"now": formatToday, "soon": inDays(3), "later": inDays(7),
+	"someday": func(t time.Time) string { return "" },
+
+	// 📅 Weekly shortcuts
+	"nw": inDays(7), "nxtwk": inDays(7),
+	"n2w": inDays(14), "n3w": inDays(21),
+	"eowk": nextWeekday(time.Friday),
+
+	// 📅 Monthly
+	"nm": inMonths(1), "em": endOfMonth,
+
+	// 🗓️ Weekday names (auto pick next)
+	"mon": nextWeekday(time.Monday), "tue": nextWeekday(time.Tuesday),
+	"wed": nextWeekday(time.Wednesday), "thu": nextWeekday(time.Thursday),
+	"fri": nextWeekday(time.Friday), "sat": nextWeekday(time.Saturday),
+	"sun":    nextWeekday(time.Sunday),
+	"nxtmon": nextWeekday(time.Monday), "nxfri": nextWeekday(time.Friday),
+
+	// ⏳ Misc
+	"eod": formatToday,
+	"ew": func(t time.Time) string {
+		return t.AddDate(0, 0, 7-int(t.Weekday())).Format("2006-01-02")
+	},
+}
+
+//
+// 🧰 INTERNAL HELPERS
+//
+
+func formatToday(t time.Time) string {
+	return t.Format("2006-01-02")
+}
+
 func inDays(n int) func(time.Time) string {
 	return func(t time.Time) string {
 		return t.AddDate(0, 0, n).Format("2006-01-02")
@@ -154,6 +177,4 @@ func nextWeekday(wd time.Weekday) func(time.Time) string {
 	}
 }
 
-func formatToday(t time.Time) string {
-	return t.Format("2006-01-02")
-}
+///test

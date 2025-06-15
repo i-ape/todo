@@ -2,6 +2,7 @@ package todo
 
 import (
 	"fmt"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -56,6 +57,16 @@ func ListTasks() {
 
 		fmt.Println(status)
 	}
+}
+
+type ListFilterOptions struct {
+	ShowDone    bool
+	ShowPending bool
+	TodayOnly   bool
+	OverdueOnly bool
+	JSONOutput  bool
+	Tag         string
+	Priority    string
 }
 
 // task.go
@@ -196,4 +207,103 @@ func DeleteTask(input string) error {
 	}
 
 	return SaveTasks(newTasks)
+}
+
+// EditTaskText updates a task's text
+func EditTaskText(idOrText, newText string) error {
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
+	id, idErr := strconv.Atoi(idOrText)
+	updated := false
+	for i := range tasks {
+		if (idErr == nil && tasks[i].ID == id) || tasks[i].Text == idOrText {
+			tasks[i].Text = newText
+			updated = true
+			break
+		}
+	}
+	if !updated {
+		return fmt.Errorf("task not found")
+	}
+	return SaveTasks(tasks)
+}
+
+// SearchTasks prints tasks that match the keyword
+func SearchTasks(keyword string) {
+	tasks, err := LoadTasks()
+	if err != nil {
+		fmt.Println("Error loading tasks:", err)
+		return
+	}
+	found := false
+	for _, task := range tasks {
+		if strings.Contains(strings.ToLower(task.Text), strings.ToLower(keyword)) {
+			fmt.Printf("🔍 %d: %s\n", task.ID, task.Text)
+			found = true
+		}
+	}
+	if !found {
+		fmt.Println("No matching tasks found.")
+	}
+}
+
+// ClearTasks deletes all tasks
+func ClearTasks() error {
+	return SaveTasks([]Task{})
+}
+
+// SelectTaskFzf allows user to choose a single task
+func SelectTaskFzf(tasks []Task) (Task, error) {
+	if _, err := exec.LookPath("fzf"); err != nil {
+		return Task{}, fmt.Errorf("fzf not found")
+	}
+	opts := []string{}
+	ref := map[string]Task{}
+	for _, t := range tasks {
+		label := fmt.Sprintf("%d: %s", t.ID, t.Text)
+		opts = append(opts, label)
+		ref[label] = t
+	}
+	cmd := exec.Command("fzf")
+	cmd.Stdin = strings.NewReader(strings.Join(opts, "\n"))
+	out, err := cmd.Output()
+	if err != nil {
+		return Task{}, fmt.Errorf("fzf error: %w", err)
+	}
+	choice := strings.TrimSpace(string(out))
+	task, ok := ref[choice]
+	if !ok {
+		return Task{}, fmt.Errorf("invalid selection")
+	}
+	return task, nil
+}
+
+// SelectMultipleTasksFzf allows multiple task selection
+func SelectMultipleTasksFzf(tasks []Task) ([]Task, error) {
+	if _, err := exec.LookPath("fzf"); err != nil {
+		return nil, fmt.Errorf("fzf not found")
+	}
+	opts := []string{}
+	ref := map[string]Task{}
+	for _, t := range tasks {
+		label := fmt.Sprintf("%d: %s", t.ID, t.Text)
+		opts = append(opts, label)
+		ref[label] = t
+	}
+	cmd := exec.Command("fzf", "--multi")
+	cmd.Stdin = strings.NewReader(strings.Join(opts, "\n"))
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("fzf error: %w", err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+	var result []Task
+	for _, l := range lines {
+		if task, ok := ref[l]; ok {
+			result = append(result, task)
+		}
+	}
+	return result, nil
 }

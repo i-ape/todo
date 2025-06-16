@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"time"
 
 	todo "todo/todo.int"
 
@@ -38,37 +37,26 @@ func init() {
 func AddTask(text, due string) error {
 	return todo.AddTaskWithDueDate(text, due)
 }
-
 func handleList() {
 	args := os.Args[2:]
-	useJSON := false
-	filter := struct {
-		Done     bool
-		Pending  bool
-		Tag      string
-		Priority string
-		Today    bool
-		Overdue  bool
-	}{
-		Done: false, Pending: false, Tag: "", Priority: "", Today: false, Overdue: false,
-	}
+	opts := todo.ListFilterOptions{}
 
 	for _, arg := range args {
 		switch {
 		case arg == "--json":
-			useJSON = true
+			opts.JSONOutput = true
 		case arg == "--done":
-			filter.Done = true
+			opts.ShowDone = true
 		case arg == "--pending":
-			filter.Pending = true
+			opts.ShowPending = true
 		case arg == "--today":
-			filter.Today = true
+			opts.TodayOnly = true
 		case arg == "--overdue":
-			filter.Overdue = true
+			opts.OverdueOnly = true
 		case strings.HasPrefix(arg, "--tag="):
-			filter.Tag = strings.TrimPrefix(arg, "--tag=")
+			opts.Tags = strings.TrimPrefix(arg, "--tag=")
 		case strings.HasPrefix(arg, "--priority="):
-			filter.Priority = strings.TrimPrefix(arg, "--priority=")
+			opts.Priority = strings.TrimPrefix(arg, "--priority=")
 		}
 	}
 
@@ -78,39 +66,11 @@ func handleList() {
 		return
 	}
 
-	filtered := []todo.Task{}
-	today := time.Now().Format("2006-01-02")
-	for _, task := range tasks {
-		if filter.Done && !task.Completed {
-			continue
-		}
-		if filter.Pending && task.Completed {
-			continue
-		}
-		if filter.Tag != "" && !contains(task.Tags, filter.Tag) {
-			continue
-		}
-		if filter.Priority != "" && strings.ToLower(task.Priority) != filter.Priority {
-			continue
-		}
-		if filter.Today && task.DueDate != today {
-			continue
-		}
-		if filter.Overdue {
-			if task.DueDate == "" {
-				continue
-			}
-			due, err := time.Parse("2006-01-02", task.DueDate)
-			if err != nil || !time.Now().After(due) {
-				continue
-			}
-		}
-		filtered = append(filtered, task)
-	}
+	filtered := todo.FilterAndSortTasks(tasks, opts)
 
-	if useJSON {
-		jsonBytes, _ := json.MarshalIndent(filtered, "", "  ")
-		fmt.Println(string(jsonBytes))
+	if opts.JSONOutput {
+		data, _ := json.MarshalIndent(filtered, "", "  ")
+		fmt.Println(string(data))
 		return
 	}
 
@@ -119,35 +79,18 @@ func handleList() {
 		if task.DueDate != "" {
 			label += fmt.Sprintf(" (Due: %s)", task.DueDate)
 		}
-		if task.Recurring != "" {
-			label += fmt.Sprintf(" 🔁 %s", task.Recurring)
-		}
 		if len(task.Tags) > 0 {
-			label += " " + strings.Join(task.Tags, " ")
+			label += " [" + strings.Join(task.Tags, ", ") + "]"
 		}
 		switch {
 		case task.Completed:
 			fmt.Println(color.GreenString("[✓] " + label))
-		case task.DueDate != "" && isOverdue(task.DueDate):
+		case todo.IsOverdue(task.DueDate):
 			fmt.Println(color.RedString("[✗] " + label))
 		default:
 			fmt.Println(color.CyanString("[ ] " + label))
 		}
 	}
-}
-
-func contains(tags []string, tag string) bool {
-	for _, t := range tags {
-		if strings.EqualFold(t, tag) {
-			return true
-		}
-	}
-	return false
-}
-
-func isOverdue(date string) bool {
-	due, err := time.Parse("2006-01-02", date)
-	return err == nil && time.Now().After(due)
 }
 
 func MarkTaskDone(input string) error {

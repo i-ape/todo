@@ -59,12 +59,12 @@ func ListTasks() {
 	}
 }
 
+// ListFilterOptions defines filters that can be applied to a task list
 type ListFilterOptions struct {
 	ShowDone    bool
 	ShowPending bool
 	TodayOnly   bool
 	OverdueOnly bool
-	JSONOutput  bool
 	Tag         string
 	Priority    string
 }
@@ -91,6 +91,7 @@ func FilterTasks(tasks []Task, options ListFilterOptions) []Task {
 	}
 	return filtered
 }
+func FilterAndSortTasks(tasks []Task, opts ListFilterOptions) []Task
 
 // MarkTaskDone marks a task as completed
 func MarkTaskDone(input string) error {

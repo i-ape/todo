@@ -65,8 +65,49 @@ type ListFilterOptions struct {
 	ShowPending bool
 	TodayOnly   bool
 	OverdueOnly bool
-	Tag         string
+	JSONOutput  bool
+	Tags        string
 	Priority    string
+}
+
+// FilterAndSortTasks filters and returns tasks based on ListFilterOptions
+func FilterAndSortTasks(tasks []Task, opts ListFilterOptions) []Task {
+	var result []Task
+	today := time.Now().Format("2006-01-02")
+
+	for _, task := range tasks {
+		if opts.ShowDone && !task.Completed {
+			continue
+		}
+		if opts.ShowPending && task.Completed {
+			continue
+		}
+		if opts.TodayOnly && task.DueDate != today {
+			continue
+		}
+		if opts.OverdueOnly && (task.DueDate == "" || !IsOverdue(task.DueDate)) {
+			continue
+		}
+		if opts.Tags != "" {
+			found := false
+			for _, tag := range task.Tags {
+				if strings.EqualFold(tag, opts.Tags) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+		if opts.Priority != "" && !strings.EqualFold(task.Priority, opts.Priority) {
+			continue
+		}
+
+		result = append(result, task)
+	}
+
+	return result
 }
 
 // task.go
@@ -91,7 +132,6 @@ func FilterTasks(tasks []Task, options ListFilterOptions) []Task {
 	}
 	return filtered
 }
-func FilterAndSortTasks(tasks []Task, opts ListFilterOptions) []Task
 
 // MarkTaskDone marks a task as completed
 func MarkTaskDone(input string) error {
@@ -216,18 +256,22 @@ func EditTaskText(idOrText, newText string) error {
 	if err != nil {
 		return err
 	}
+
 	id, idErr := strconv.Atoi(idOrText)
-	updated := false
+	found := false
+
 	for i := range tasks {
 		if (idErr == nil && tasks[i].ID == id) || tasks[i].Text == idOrText {
-			tasks[i].Text = newText
-			updated = true
+			tasks[i].Text = strings.TrimSpace(newText)
+			found = true
 			break
 		}
 	}
-	if !updated {
+
+	if !found {
 		return fmt.Errorf("task not found")
 	}
+
 	return SaveTasks(tasks)
 }
 

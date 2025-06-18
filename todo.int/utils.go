@@ -26,6 +26,51 @@ func parseTags(input string) []string {
 	return tags
 }
 
+func ConfirmPrompt(question string) bool {
+	fmt.Printf("%s [y/N]: ", question)
+	var input string
+	fmt.Scanln(&input)
+	input = strings.ToLower(strings.TrimSpace(input))
+	return input == "y" || input == "yes"
+}
+
+func NextTaskID(tasks []Task) int {
+	max := 0
+	for _, t := range tasks {
+		if t.ID > max {
+			max = t.ID
+		}
+	}
+	return max + 1
+}
+
+func Slugify(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = strings.ReplaceAll(s, " ", "-")
+	return s
+}
+
+func JoinNonEmpty(elems []string, sep string) string {
+	var result []string
+	for _, e := range elems {
+		if trimmed := strings.TrimSpace(e); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return strings.Join(result, sep)
+}
+
+func ParsePriority(s string) string {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "low":
+		return "low"
+	case "high":
+		return "high"
+	default:
+		return "medium"
+	}
+}
+
 func parseFlags(args []string) (command string, commandArgs []string, flags map[string]string) {
 	flags = make(map[string]string)
 	command = ""
@@ -47,7 +92,6 @@ func parseFlags(args []string) (command string, commandArgs []string, flags map[
 	}
 	return
 }
-
 
 func ParseDateTimeDurationRepeat(input string) (date, t, dur, recurring, until string, err error) {
 	input = strings.ToLower(input)

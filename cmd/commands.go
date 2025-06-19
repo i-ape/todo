@@ -264,10 +264,8 @@ func handleEdit() {
 	}
 	task := selected[0]
 
-	fmt.Printf("✏️  Editing: %s\n> ", task.Text)
-	reader := bufio.NewReader(os.Stdin)
-	newText, _ := reader.ReadString('\n')
-	newText = strings.TrimSpace(newText)
+	newText := todo.PromptInput(fmt.Sprintf("✏️  Edit task \"%s\"", task.Text), task.Text)
+
 	if newText == "" {
 		fmt.Println("No changes made.")
 		return

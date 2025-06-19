@@ -7,14 +7,14 @@ import (
 	"time"
 )
 
-func promptInput(prompt string, current string) string {
+func PromptInput(prompt string, current string) string {
 	fmt.Printf("%s [%s]: ", prompt, current)
 	var input string
 	fmt.Scanln(&input)
 	return strings.TrimSpace(input)
 }
 
-func parseTags(input string) []string {
+func ParseTags(input string) []string {
 	parts := strings.Split(input, ",")
 	var tags []string
 	for _, tag := range parts {
@@ -71,7 +71,7 @@ func ParsePriority(s string) string {
 	}
 }
 
-func parseFlags(args []string) (command string, commandArgs []string, flags map[string]string) {
+func ParseFlags(args []string) (command string, commandArgs []string, flags map[string]string) {
 	flags = make(map[string]string)
 	command = ""
 	commandArgs = []string{}

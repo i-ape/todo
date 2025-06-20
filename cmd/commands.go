@@ -184,6 +184,8 @@ func HandleCommands() {
 		handleReset()
 	case "search":
 		handleSearch()
+	case "priority":
+		handlePriority()
 	case "tag":
 		handleTags()
 	case "help":
@@ -320,51 +322,62 @@ func handleSearch() {
 	}
 	SearchTasks(os.Args[2])
 }
-func handleTags() {
-	tasks, err := selectTasksWithFzf(false)
-	if err != nil || len(tasks) == 0 {
+func handlePriority() {
+	selected, err := selectTasksWithFzf(false)
+	if err != nil || len(selected) == 0 {
 		fmt.Println("Error selecting task:", err)
 		return
 	}
-	task := tasks[0] // ✅ select first from slice
+	task := selected[0]
 
-	fmt.Printf("🏷️  Current tags: %v\nEnter new tags (comma-separated): ", task.Tags)
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
-
-	if input == "" {
-		fmt.Println("❌ No tags entered.")
+	newPriority := todo.PromptInput("🔥 Set priority (high/medium/low)", task.Priority)
+	if newPriority == "" {
+		fmt.Println("No changes made.")
 		return
 	}
+	task.Priority = todo.ParsePriority(newPriority)
 
-	rawTags := strings.Split(input, ",")
-	tags := []string{}
-	for _, tag := range rawTags {
-		t := strings.TrimSpace(tag)
-		if t != "" {
-			tags = append(tags, t)
-		}
-	}
-
-	all, err := todo.LoadTasks()
-	if err != nil {
-		fmt.Println("Error loading tasks:", err)
-		return
-	}
-
-	for i, t := range all {
-		if t.ID == task.ID {
-			all[i].Tags = tags
+	tasks, _ := todo.LoadTasks()
+	for i := range tasks {
+		if tasks[i].ID == task.ID {
+			tasks[i] = task
 			break
 		}
 	}
-
-	if err := todo.SaveTasks(all); err != nil {
-		fmt.Println("Error saving tasks:", err)
+	if err := todo.SaveTasks(tasks); err != nil {
+		fmt.Println("Failed to save:", err)
 		return
 	}
+	fmt.Println("✅ Priority updated.")
+}
 
+func handleTags() {
+	selected, err := selectTasksWithFzf(false)
+	if err != nil || len(selected) == 0 {
+		fmt.Println("Error selecting task:", err)
+		return
+	}
+	task := selected[0]
+
+	existing := strings.Join(task.Tags, ", ")
+	raw := todo.PromptInput("🏷️  Edit tags (comma-separated)", existing)
+	if raw == "" {
+		fmt.Println("No changes made.")
+		return
+	}
+	task.Tags = todo.ParseTags(raw)
+
+	tasks, _ := todo.LoadTasks()
+	for i := range tasks {
+		if tasks[i].ID == task.ID {
+			tasks[i] = task
+			break
+		}
+	}
+	if err := todo.SaveTasks(tasks); err != nil {
+		fmt.Println("Failed to save:", err)
+		return
+	}
 	fmt.Println("✅ Tags updated.")
 }
 

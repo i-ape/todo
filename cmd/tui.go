@@ -42,7 +42,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor--
 			}
 
-		case " " , "enter":
+		case " ", "enter":
 			m.tasks[m.cursor].Completed = !m.tasks[m.cursor].Completed
 			_ = todo.SaveTasks(m.tasks)
 
@@ -85,7 +85,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-
 func (m model) View() string {
 	if m.quitting {
 		return "Goodbye 👋\n"
@@ -112,9 +111,10 @@ func (m model) View() string {
 		if len(task.Tags) > 0 {
 			label += " 🏷️ " + strings.Join(task.Tags, ", ")
 		}
-		if task.Priority == "high" {
+		switch task.Priority {
+		case "high":
 			label += color.RedString(" 🔥")
-		} else if task.Priority == "low" {
+		case "low":
 			label += color.BlueString(" ⬇")
 		}
 

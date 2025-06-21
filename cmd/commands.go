@@ -1,11 +1,10 @@
 package main
 
 import (
-	"bufio"
+	//"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 
@@ -13,48 +12,6 @@ import (
 
 	"github.com/fatih/color"
 )
-
-// --- FZF Selector ---
-
-func selectTasksWithFzf(multi bool) ([]todo.Task, error) {
-	tasks, err := todo.LoadTasks()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load tasks: %w", err)
-	}
-
-	if !disableFzf {
-		if _, err := exec.LookPath("fzf"); err == nil {
-			if multi {
-				return todo.SelectMultipleTasksFzf(tasks)
-			}
-			task, err := todo.SelectTaskFzf(tasks)
-			if err != nil {
-				return nil, err
-			}
-			return []todo.Task{task}, nil
-		}
-	}
-
-	fmt.Println("FZF disabled or not found. Manual selection:")
-	for _, t := range tasks {
-		fmt.Printf("%d: %s\n", t.ID, t.Text)
-	}
-	fmt.Print("> Enter task ID: ")
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	id, err := strconv.Atoi(input)
-	if err != nil {
-		return nil, fmt.Errorf("invalid ID")
-	}
-
-	for _, t := range tasks {
-		if t.ID == id {
-			return []todo.Task{t}, nil
-		}
-	}
-	return nil, fmt.Errorf("task not found")
-}
 
 // --- Task Management Functions ---
 
@@ -232,7 +189,6 @@ func HandleCommands() {
 		handleTags()
 	case "recurring":
 		handleRecurring()
-
 	case "help":
 		printHelp()
 	case "tui":
@@ -262,7 +218,7 @@ func handleAdd() {
 }
 
 func handleEdit() {
-	selected, err := selectTasksWithFzf(false)
+	selected, err := todo.selectTasksWithFzf(false)
 	if err != nil || len(selected) == 0 {
 		fmt.Println("Select error:", err)
 		return
@@ -355,33 +311,52 @@ func handlePriority() {
 }
 
 func handleTags() {
-	selected, err := selectTasksWithFzf(false)
+	selected, err := todo.SelectTasksWithFzf(false)
 	if err != nil || len(selected) == 0 {
 		fmt.Println("Error selecting task:", err)
 		return
 	}
 	task := selected[0]
 
-	existing := strings.Join(task.Tags, ", ")
-	raw := todo.PromptInput("🏷️  Edit tags (comma-separated)", existing)
+	raw := todo.PromptInput("🏷️ Edit tags (comma-separated)", strings.Join(task.Tags, ", "))
 	if raw == "" {
 		fmt.Println("No changes made.")
 		return
 	}
-	task.Tags = todo.ParseTags(raw)
+	tags := todo.ParseTags(raw)
 
-	tasks, _ := todo.LoadTasks()
-	for i := range tasks {
-		if tasks[i].ID == task.ID {
-			tasks[i] = task
-			break
-		}
-	}
-	if err := todo.SaveTasks(tasks); err != nil {
-		fmt.Println("Failed to save:", err)
+	err = todo.UpdateTaskByID(task.ID, func(t *todo.Task) {
+		t.Tags = tags
+	})
+	if err != nil {
+		fmt.Println("❌", err)
 		return
 	}
 	fmt.Println("✅ Tags updated.")
+}
+
+func handleRecurring() {
+	selected, err := todo.SelectTasksWithFzf(false)
+	if err != nil || len(selected) == 0 {
+		fmt.Println("Selection error:", err)
+		return
+	}
+	task := selected[0]
+
+	rec := todo.PromptInput("🔁 Set recurrence (daily, weekly, etc)", task.Recurring)
+	if rec == "" {
+		fmt.Println("No changes made.")
+		return
+	}
+
+	err = todo.UpdateTaskByID(task.ID, func(t *todo.Task) {
+		t.Recurring = rec
+	})
+	if err != nil {
+		fmt.Println("❌", err)
+	} else {
+		fmt.Println("✅ Recurrence set.")
+	}
 }
 
 func handleClear() {

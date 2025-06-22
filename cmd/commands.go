@@ -218,7 +218,7 @@ func handleAdd() {
 }
 
 func handleEdit() {
-	selected, err := todo.selectTasksWithFzf(false)
+	selected, err := todo.SelectTasksWithFzf(false)
 	if err != nil || len(selected) == 0 {
 		fmt.Println("Select error:", err)
 		return
@@ -237,7 +237,7 @@ func handleEdit() {
 }
 
 func handleDone() {
-	selected, err := selectTasksWithFzf(true)
+	selected, err := todo.SelectTasksWithFzf(true)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -250,7 +250,7 @@ func handleDone() {
 }
 
 func handleDelete() {
-	selected, err := selectTasksWithFzf(true)
+	selected, err := todo.SelectTasksWithFzf(true)
 	if err != nil {
 		fmt.Println("Error selecting task:", err)
 		return
@@ -282,7 +282,7 @@ func handleSearch() {
 	SearchTasks(os.Args[2])
 }
 func handlePriority() {
-	selected, err := selectTasksWithFzf(false)
+	selected, err := todo.SelectTasksWithFzf(false)
 	if err != nil || len(selected) == 0 {
 		fmt.Println("Error selecting task:", err)
 		return

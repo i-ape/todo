@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+// --- FZF Selector ---
+
 func SelectTasksWithFzf(multi bool) ([]Task, error) {
 	tasks, err := LoadTasks()
 	if err != nil {

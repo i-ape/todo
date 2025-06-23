@@ -2,7 +2,6 @@ package todo
 
 import (
 	"fmt"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -297,58 +296,4 @@ func SearchTasks(keyword string) {
 // ClearTasks deletes all tasks
 func ClearTasks() error {
 	return SaveTasks([]Task{})
-}
-
-// SelectTaskFzf allows user to choose a single task
-func SelectTaskFzf(tasks []Task) (Task, error) {
-	if _, err := exec.LookPath("fzf"); err != nil {
-		return Task{}, fmt.Errorf("fzf not found")
-	}
-	opts := []string{}
-	ref := map[string]Task{}
-	for _, t := range tasks {
-		label := fmt.Sprintf("%d: %s", t.ID, t.Text)
-		opts = append(opts, label)
-		ref[label] = t
-	}
-	cmd := exec.Command("fzf")
-	cmd.Stdin = strings.NewReader(strings.Join(opts, "\n"))
-	out, err := cmd.Output()
-	if err != nil {
-		return Task{}, fmt.Errorf("fzf error: %w", err)
-	}
-	choice := strings.TrimSpace(string(out))
-	task, ok := ref[choice]
-	if !ok {
-		return Task{}, fmt.Errorf("invalid selection")
-	}
-	return task, nil
-}
-
-// SelectMultipleTasksFzf allows multiple task selection
-func SelectMultipleTasksFzf(tasks []Task) ([]Task, error) {
-	if _, err := exec.LookPath("fzf"); err != nil {
-		return nil, fmt.Errorf("fzf not found")
-	}
-	opts := []string{}
-	ref := map[string]Task{}
-	for _, t := range tasks {
-		label := fmt.Sprintf("%d: %s", t.ID, t.Text)
-		opts = append(opts, label)
-		ref[label] = t
-	}
-	cmd := exec.Command("fzf", "--multi")
-	cmd.Stdin = strings.NewReader(strings.Join(opts, "\n"))
-	out, err := cmd.Output()
-	if err != nil {
-		return nil, fmt.Errorf("fzf error: %w", err)
-	}
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	var result []Task
-	for _, l := range lines {
-		if task, ok := ref[l]; ok {
-			result = append(result, task)
-		}
-	}
-	return result, nil
 }

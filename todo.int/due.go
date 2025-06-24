@@ -176,5 +176,3 @@ func nextWeekday(wd time.Weekday) func(time.Time) string {
 		return t.AddDate(0, 0, offset).Format("2006-01-02")
 	}
 }
-
-///test

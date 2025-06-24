@@ -1,10 +1,7 @@
 package todo
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -138,48 +135,6 @@ func ParseDateTimeDurationRepeat(input string) (date, t, dur, recurring, until s
 	// Parse natural date
 	d, err := ParseNaturalDate(strings.TrimSpace(main))
 	return d, t, dur, recurring, until, err
-}
-
-// --- FZF Selector ---
-
-func selectTasksWithFzf(multi bool) ([]todo.Task, error) {
-	tasks, err := todo.LoadTasks()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load tasks: %w", err)
-	}
-
-	if !disableFzf {
-		if _, err := exec.LookPath("fzf"); err == nil {
-			if multi {
-				return todo.SelectMultipleTasksFzf(tasks)
-			}
-			task, err := todo.SelectTaskFzf(tasks)
-			if err != nil {
-				return nil, err
-			}
-			return []todo.Task{task}, nil
-		}
-	}
-
-	fmt.Println("FZF disabled or not found. Manual selection:")
-	for _, t := range tasks {
-		fmt.Printf("%d: %s\n", t.ID, t.Text)
-	}
-	fmt.Print("> Enter task ID: ")
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	id, err := strconv.Atoi(input)
-	if err != nil {
-		return nil, fmt.Errorf("invalid ID")
-	}
-
-	for _, t := range tasks {
-		if t.ID == id {
-			return []todo.Task{t}, nil
-		}
-	}
-	return nil, fmt.Errorf("task not found")
 }
 
 func UpdateTaskByID(id int, updateFn func(*Task)) error {

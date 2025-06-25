@@ -136,7 +136,15 @@ var abbreviationMap = map[string]func(time.Time) string{
 	"nxtmon": nextWeekday(time.Monday), "nxfri": nextWeekday(time.Friday),
 
 	// ⏳ Misc
-	"eod": formatToday,
+	"eod":  formatToday,
+	"bom":  startOfMonth,
+	"eom":  endOfMonth,
+	"bonm": startOfNextMonth,
+	"eonm": endOfNextMonth,
+	"eow":  endOfWeek,
+	"som":  startOfMonth,
+	"sonm": startOfNextMonth,
+
 	"ew": func(t time.Time) string {
 		return t.AddDate(0, 0, 7-int(t.Weekday())).Format("2006-01-02")
 	},
@@ -175,4 +183,23 @@ func nextWeekday(wd time.Weekday) func(time.Time) string {
 		}
 		return t.AddDate(0, 0, offset).Format("2006-01-02")
 	}
+}
+
+func startOfMonth(t time.Time) string {
+	return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, t.Location()).Format("2006-01-02")
+}
+
+func endOfWeek(t time.Time) string {
+	offset := 6 - int(t.Weekday())
+	return t.AddDate(0, 0, offset).Format("2006-01-02")
+}
+
+func startOfNextMonth(t time.Time) string {
+	next := t.AddDate(0, 1, 0)
+	return time.Date(next.Year(), next.Month(), 1, 0, 0, 0, 0, t.Location()).Format("2006-01-02")
+}
+
+func endOfNextMonth(t time.Time) string {
+	next := t.AddDate(0, 2, 0)
+	return time.Date(next.Year(), next.Month(), 0, 0, 0, 0, 0, t.Location()).Format("2006-01-02")
 }

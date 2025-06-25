@@ -11,25 +11,28 @@ import (
 )
 
 // --- FZF Selector ---
-
-func SelectTasksWithFzf(multi bool) ([]Task, error) {
+func SelectTasksWithFzf(multi bool, disable bool) ([]Task, error) {
 	tasks, err := LoadTasks()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	if _, err := exec.LookPath("fzf"); err == nil {
-		if multi {
-			return SelectMultipleTasksFzf(tasks)
+	// If not disabled and fzf exists, try FZF
+	if !disable {
+		if _, err := exec.LookPath("fzf"); err == nil {
+			if multi {
+				return SelectMultipleTasksFzf(tasks)
+			}
+			task, err := SelectTaskFzf(tasks)
+			if err != nil {
+				return nil, err
+			}
+			return []Task{task}, nil
 		}
-		task, err := SelectTaskFzf(tasks)
-		if err != nil {
-			return nil, err
-		}
-		return []Task{task}, nil
 	}
 
-	fmt.Println("FZF not found, falling back to manual selection:")
+	// Fallback manual selection
+	fmt.Println("FZF disabled or not found. Manual selection:")
 	for _, t := range tasks {
 		fmt.Printf("%d: %s\n", t.ID, t.Text)
 	}

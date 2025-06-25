@@ -218,7 +218,8 @@ func handleAdd() {
 }
 
 func handleEdit() {
-	selected, err := todo.SelectTasksWithFzf(false)
+	selected, err := todo.SelectTasksWithFzf(false, disableFzf)
+
 	if err != nil || len(selected) == 0 {
 		fmt.Println("Select error:", err)
 		return
@@ -237,7 +238,8 @@ func handleEdit() {
 }
 
 func handleDone() {
-	selected, err := todo.SelectTasksWithFzf(true)
+	selected, err := todo.SelectTasksWithFzf(false, disableFzf)
+
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -250,7 +252,8 @@ func handleDone() {
 }
 
 func handleDelete() {
-	selected, err := todo.SelectTasksWithFzf(true)
+	selected, err := todo.SelectTasksWithFzf(false, disableFzf)
+
 	if err != nil {
 		fmt.Println("Error selecting task:", err)
 		return
@@ -394,16 +397,18 @@ func printHelp() {
 
 💡 Flags:
   --no-fzf                      → Disable FZF interactive mode
-  --done						→ Show only completed tasks
-  --pending						→ Show only incomplete tasks
-  --tag=work					→ Filter by tag
-  --priority=high				→ Filter by priority
-  --today						→ Due today
-  --overdue						→ Show overdue tasks
-  --json 						→ Output JSON format
-  --tui 						→ bubble tea interface
+  --done                        → Show only completed tasks
+  --pending                     → Show only incomplete tasks
+  --tag=work                    → Filter by tag
+  --priority=high              → Filter by priority
+  --today                       → Due today
+  --overdue                     → Show overdue tasks
+  --json                        → Output JSON format
+  --tui                         → bubble tea interface
 
+Aliases:
+  a, ls, d, rm, clr, r, s, del, h, ?, -h, --help
 
-🔤 Aliases:
-  a, ls, d, rm, clr, r, s, del, h, ?, -h, --help`)
+Shortcuts:
+  today, tomorrow, next, fri, sun, eom, eow, bonm, etc.`)
 }

@@ -285,7 +285,8 @@ func handleSearch() {
 	SearchTasks(os.Args[2])
 }
 func handlePriority() {
-	selected, err := todo.SelectTasksWithFzf(false)
+	selected, err := todo.SelectTasksWithFzf(false, disableFzf)
+
 	if err != nil || len(selected) == 0 {
 		fmt.Println("Error selecting task:", err)
 		return
@@ -314,7 +315,8 @@ func handlePriority() {
 }
 
 func handleTags() {
-	selected, err := todo.SelectTasksWithFzf(false)
+	selected, err := todo.SelectTasksWithFzf(false, disableFzf)
+
 	if err != nil || len(selected) == 0 {
 		fmt.Println("Error selecting task:", err)
 		return
@@ -339,7 +341,8 @@ func handleTags() {
 }
 
 func handleRecurring() {
-	selected, err := todo.SelectTasksWithFzf(false)
+	selected, err := todo.SelectTasksWithFzf(false, disableFzf)
+
 	if err != nil || len(selected) == 0 {
 		fmt.Println("Selection error:", err)
 		return

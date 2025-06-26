@@ -284,9 +284,9 @@ func handleSearch() {
 	}
 	SearchTasks(os.Args[2])
 }
+
 func handlePriority() {
 	selected, err := todo.SelectTasksWithFzf(false, disableFzf)
-
 	if err != nil || len(selected) == 0 {
 		fmt.Println("Error selecting task:", err)
 		return
@@ -298,17 +298,13 @@ func handlePriority() {
 		fmt.Println("No changes made.")
 		return
 	}
-	task.Priority = todo.ParsePriority(newPriority)
+	parsed := todo.ParsePriority(newPriority)
 
-	tasks, _ := todo.LoadTasks()
-	for i := range tasks {
-		if tasks[i].ID == task.ID {
-			tasks[i] = task
-			break
-		}
-	}
-	if err := todo.SaveTasks(tasks); err != nil {
-		fmt.Println("Failed to save:", err)
+	err = todo.UpdateTaskByID(task.ID, func(t *todo.Task) {
+		t.Priority = parsed
+	})
+	if err != nil {
+		fmt.Println("Failed to update priority:", err)
 		return
 	}
 	fmt.Println("✅ Priority updated.")

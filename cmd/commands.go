@@ -313,7 +313,7 @@ func handlePriority() {
 func handleTags() {
 	selected, err := todo.SelectTasksWithFzf(false, disableFzf)
 
-	if err != nil || len(selected) == 0 {
+	if err != nil {
 		fmt.Println("Error selecting task:", err)
 		return
 	}
@@ -339,8 +339,8 @@ func handleTags() {
 func handleRecurring() {
 	selected, err := todo.SelectTasksWithFzf(false, disableFzf)
 
-	if err != nil || len(selected) == 0 {
-		fmt.Println("Selection error:", err)
+	if err != nil {
+		fmt.Println("Error selecting task:", err)
 		return
 	}
 	task := selected[0]

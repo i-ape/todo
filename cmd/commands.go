@@ -189,6 +189,8 @@ func HandleCommands() {
 		handleTags()
 	case "recurring":
 		handleRecurring()
+	case "move":
+		handleMove()
 	case "help":
 		printHelp()
 	case "tui":
@@ -198,6 +200,14 @@ func HandleCommands() {
 		fmt.Println("❌ Unknown command:", cmd)
 		printHelp()
 	}
+}
+
+func mustSelectSingleTask() (*todo.Task, error) {
+	tasks, err := todo.SelectTasksWithFzf(false, disableFzf)
+	if err != nil {
+		return nil, err
+	}
+	return &tasks[0], nil
 }
 
 // --- Handlers ---

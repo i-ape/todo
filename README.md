@@ -101,6 +101,9 @@ todo reset
 todo add "Gym @health" every mon,wed,fri
 todo add "Standup meeting @work" every weekday @ 09:00
 todo add "Call mom" every sunday @ 18:00
+todo add "Quarterly report" bonm
+todo add "End of month close" eom
+todo due 4 eow
 todo list --tag=work --priority=high --pending --json
 todo add "Meeting @work" friday @ 14:00 for 45m
 todo add "Call mom @family" sunday @ 18:00 for 1h for 3weeks
@@ -108,6 +111,8 @@ todo tui        # launch interactive interface
 todo --tui list # use tui selection for list
 todo pick         → Launch selector, print ID(s)
 todo pick --json  → Print selected task(s) as JSON
+todo move                  → Reorder a task to new position
+
 
 ## flags
 

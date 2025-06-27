@@ -371,6 +371,54 @@ func handleRecurring() {
 	}
 }
 
+func handleMove() {
+	task, err := mustSelectSingleTask()
+	if err != nil {
+		fmt.Println("❌ Selection error:", err)
+		return
+	}
+
+	tasks, err := todo.LoadTasks()
+	if err != nil {
+		fmt.Println("❌ Failed to load tasks:", err)
+		return
+	}
+
+	fmt.Printf("🪄 Task: \"%s\"\n", task.Text)
+	posStr := todo.PromptInput("↕️ New position (1-based index)", "")
+	pos, err := strconv.Atoi(posStr)
+	if err != nil || pos < 1 || pos > len(tasks) {
+		fmt.Println("❌ Invalid position")
+		return
+	}
+
+	// Remove task from current position
+	var moved todo.Task
+	newList := []todo.Task{}
+	for _, t := range tasks {
+		if t.ID == task.ID {
+			moved = t
+		} else {
+			newList = append(newList, t)
+		}
+	}
+
+	// Insert at new position (slice-safe)
+	pos-- // convert to 0-based index
+	if pos >= len(newList) {
+		newList = append(newList, moved)
+	} else {
+		newList = append(newList[:pos], append([]todo.Task{moved}, newList[pos:]...)...)
+	}
+
+	if err := todo.SaveTasks(newList); err != nil {
+		fmt.Println("❌ Failed to save:", err)
+		return
+	}
+
+	fmt.Println("✅ Task moved successfully.")
+}
+
 func handleClear() {
 	if err := ClearTasks(); err != nil {
 		fmt.Println("Error:", err)

@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	todo "todo/todo.int"
+
 	"github.com/fatih/color"
 )
-Make
 
 // --- Handlers ---
 

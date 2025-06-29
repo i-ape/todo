@@ -92,9 +92,9 @@ func HandleCommands() {
 		StartTUI()
 
 	default:
-		handleClear
 		fmt.Println("❌ Unknown command:", cmd)
 		printHelp()
+
 	}
 }
 

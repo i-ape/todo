@@ -139,12 +139,10 @@ var abbreviationMap = map[string]func(time.Time) string{
 	"eod":  formatToday,
 	"bom":  startOfMonth,
 	"eom":  endOfMonth,
-	"bonm": startOfNextMonth,
 	"eonm": endOfNextMonth,
 	"eow":  endOfWeek,
 	"som":  startOfMonth,
 	"sonm": startOfNextMonth,
-
 	"ew": func(t time.Time) string {
 		return t.AddDate(0, 0, 7-int(t.Weekday())).Format("2006-01-02")
 	},

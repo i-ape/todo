@@ -1,35 +1,33 @@
 package main
 
 import (
-	//"bufio"
-	//"encoding/json"
 	"fmt"
 	"os"
-
-	//"strconv"
 	"strings"
 
 	todo "todo/todo.int"
 	//"github.com/fatih/color"
 )
 
+//var DisableFzf, EnableTui bool
+
 func HandleCommands() {
 	// Parse flags
 	for i := 1; i < len(os.Args); i++ {
 		if os.Args[i] == "--no-fzf" {
-			disableFzf = true
+			DisableFzf = true
 			os.Args = append(os.Args[:i], os.Args[i+1:]...)
 			i--
 		}
 		if os.Args[i] == "--tui" {
-			enableTui = true
+			EnableTui = true
 			os.Args = append(os.Args[:i], os.Args[i+1:]...)
 			i--
 		}
 	}
 
 	// 🧃 Launch TUI if enabled
-	if enableTui {
+	if EnableTui {
 		StartTUI()
 		return
 	}
@@ -99,24 +97,6 @@ func HandleCommands() {
 }
 
 // --- Task Management Functions ---
-
-var disableFzf, enableTui bool
-
-func init() {
-	for i := 1; i < len(os.Args); i++ {
-		arg := os.Args[i]
-		if arg == "--no-fzf" {
-			disableFzf = true
-			os.Args = append(os.Args[:i], os.Args[i+1:]...)
-			i--
-		}
-		if arg == "--tui" {
-			enableTui = true
-			os.Args = append(os.Args[:i], os.Args[i+1:]...)
-			i--
-		}
-	}
-} // TODO: launch tea.Program(model)
 
 func AddTask(text, due string) error {
 	return todo.AddTaskWithDueDate(text, due)

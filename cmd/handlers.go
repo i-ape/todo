@@ -50,8 +50,7 @@ func handleEdit() {
 }
 
 func handleDone() {
-	selected, err := todo.SelectTasksWithFzf(false, DisableFzf
-)
+	selected, err := todo.SelectTasksWithFzf(false, DisableFzf)
 
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -65,9 +64,7 @@ func handleDone() {
 }
 
 func handleDelete() {
-	selected, err := todo.SelectTasksWithFzf(false, DisableFzf
-
-)
+	selected, err := todo.SelectTasksWithFzf(false, DisableFzf)
 
 	if err != nil {
 		fmt.Println("Error selecting task:", err)
@@ -101,9 +98,7 @@ func handleSearch() {
 }
 
 func handlePriority() {
-	selected, err := todo.SelectTasksWithFzf(false, DisableFzf
-
-)
+	selected, err := todo.SelectTasksWithFzf(false, DisableFzf)
 	if err != nil || len(selected) == 0 {
 		fmt.Println("Error selecting task:", err)
 		return
@@ -128,9 +123,7 @@ func handlePriority() {
 }
 
 func handleTags() {
-	selected, err := todo.SelectTasksWithFzf(false, DisableFzf
-
-)
+	selected, err := todo.SelectTasksWithFzf(false, DisableFzf)
 
 	if err != nil {
 		fmt.Println("Error selecting task:", err)
@@ -156,9 +149,7 @@ func handleTags() {
 }
 
 func handleRecurring() {
-	selected, err := todo.SelectTasksWithFzf(false, DisableFzf
-
-)
+	selected, err := todo.SelectTasksWithFzf(false, DisableFzf)
 
 	if err != nil {
 		fmt.Println("Error selecting task:", err)
@@ -302,9 +293,7 @@ func handleList() {
 }
 
 func mustSelectSingleTask() (*todo.Task, error) {
-	tasks, err := todo.SelectTasksWithFzf(false, DisableFzf
-
-)
+	tasks, err := todo.SelectTasksWithFzf(false, DisableFzf)
 	if err != nil {
 		return nil, err
 	}

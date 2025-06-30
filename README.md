@@ -2,7 +2,7 @@
 
 i wanna get good at go since typescript uses it :)
 
-## 📝 Go CLI To-Do List
+## 📝 Go ToDo List
 
 ## 📌 Project Overview
 
@@ -35,9 +35,9 @@ It covers:
 ## Installation
 
 ```bash
-go build -o todo-cli
-chmod +x todo-cli
-./todo-cli list
+go build -o todo
+chmod +x todo
+./todo list
 
 ## 📂 Project Structure
 

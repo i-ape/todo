@@ -1,18 +1,16 @@
-// storage.go
 package todo
 
 import (
 	"encoding/json"
 	"errors"
 	"os"
+	"todo/todo.int/config"
 )
 
-const filename = "tasks.json"
-
-// LoadTasks reads tasks from a file
+// LoadTasks reads tasks from disk using config-defined path
 func LoadTasks() ([]Task, error) {
 	var tasks []Task
-	file, err := os.ReadFile(filename)
+	file, err := os.ReadFile(config.GetTaskFilePath())
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return []Task{}, nil
@@ -23,11 +21,11 @@ func LoadTasks() ([]Task, error) {
 	return tasks, err
 }
 
-// SaveTasks writes tasks to a file
+// SaveTasks writes tasks to disk
 func SaveTasks(tasks []Task) error {
 	data, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filename, data, 0644)
+	return os.WriteFile(config.GetTaskFilePath(), data, 0644)
 }

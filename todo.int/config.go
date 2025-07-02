@@ -1,5 +1,5 @@
 // cmd/config.go
-package main
+package todo
 
 import (
 	"os"

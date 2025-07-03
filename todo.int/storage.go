@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"todo/todo.int/config"
+
+	"todo/config" // ✅ now correct
 )
 
 // LoadTasks reads tasks from disk using config-defined path

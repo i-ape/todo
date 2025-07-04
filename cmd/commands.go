@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"todo/config"
 	todo "todo/todo.int"
 	//"github.com/fatih/color"
 )
@@ -15,12 +16,12 @@ func HandleCommands() {
 	// Parse flags
 	for i := 1; i < len(os.Args); i++ {
 		if os.Args[i] == "--no-fzf" {
-			DisableFzf = true
+			config.DisableFzf = true
 			os.Args = append(os.Args[:i], os.Args[i+1:]...)
 			i--
 		}
 		if os.Args[i] == "--tui" {
-			EnableTui = true
+			config.EnableTui = true
 			os.Args = append(os.Args[:i], os.Args[i+1:]...)
 			i--
 		}

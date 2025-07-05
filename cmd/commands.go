@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"todo/config"
-	todo "todo/todo.int"
+	"todo/todo.int"
 	//"github.com/fatih/color"
 )
 
@@ -28,7 +28,7 @@ func HandleCommands() {
 	}
 
 	// 🧃 Launch TUI if enabled
-	if EnableTui {
+	if configEnableTui {
 		StartTUI()
 		return
 	}

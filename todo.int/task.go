@@ -18,6 +18,8 @@ type Task struct {
 	Tags      []string `json:"tags,omitempty"`
 	Priority  string   `json:"priority,omitempty"`
 	Recurring string   `json:"recurring,omitempty"`
+	Notes     string   `json:"notes,omitempty"`
+	ParentID  int      `json:"parent_id,omitempty"` // ID of parent task, 0 = top-level
 }
 
 // AddTaskWithDueDate adds a task with an optional due date

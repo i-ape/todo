@@ -201,3 +201,77 @@ func endOfNextMonth(t time.Time) string {
 	next := t.AddDate(0, 2, 0)
 	return time.Date(next.Year(), next.Month(), 0, 0, 0, 0, 0, t.Location()).Format("2006-01-02")
 }
+
+// parseNaturalDate handles natural language date inputs
+func parseNaturalDate(input string) (string, error) {
+	now := time.Now()
+	input = strings.ToLower(strings.TrimSpace(input))
+
+	switch input {
+	case "today":
+		return now.Format("2006-01-02"), nil
+	case "tomorrow":
+		return now.AddDate(0, 0, 1).Format("2006-01-02"), nil
+	case "next week":
+		return now.AddDate(0, 0, 7).Format("2006-01-02"), nil
+	case "next month":
+		return now.AddDate(0, 1, 0).Format("2006-01-02"), nil
+	case "next year":
+		return now.AddDate(1, 0, 0).Format("2006-01-02"), nil
+	default:
+		// in N days or weeks
+		if strings.HasPrefix(input, "in ") {
+			parts := strings.Split(input, " ")
+			if len(parts) == 3 {
+				num, err := strconv.Atoi(parts[1])
+				if err != nil {
+					return "", fmt.Errorf("invalid number in relative date")
+				}
+				switch parts[2] {
+				case "day", "days":
+					return now.AddDate(0, 0, num).Format("2006-01-02"), nil
+				case "week", "weeks":
+					return now.AddDate(0, 0, num*7).Format("2006-01-02"), nil
+				}
+			}
+		}
+
+		// try DD-MM-YYYY
+		t, err := time.Parse("02-01-2006", input)
+		if err == nil {
+			return t.Format("2006-01-02"), nil
+		}
+		// try YYYY-MM-DD
+		t, err = time.Parse("2006-01-02", input)
+		if err == nil {
+			return t.Format("2006-01-02"), nil
+		}
+		return "", fmt.Errorf("invalid date format or unsupported natural keyword")
+	}
+}
+
+// SetDueDate assigns a due date to a task
+func SetDueDate(input string, dueDate string) error {
+	tasks, _ := LoadTasks()
+	found := false
+
+	parsedDate, err := parseNaturalDate(dueDate)
+	if err != nil {
+		return err
+	}
+
+	id, err := strconv.Atoi(input)
+	for i, task := range tasks {
+		if (err == nil && task.ID == id) || task.Text == input {
+			tasks[i].DueDate = parsedDate
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("task not found")
+	}
+
+	return SaveTasks(tasks)
+}

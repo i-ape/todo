@@ -2,6 +2,8 @@ package todo
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -149,4 +151,16 @@ func UpdateTaskByID(id int, updateFn func(*Task)) error {
 		}
 	}
 	return fmt.Errorf("task not found")
+}
+
+func PromptMultiline(prompt, initial string) string {
+	tmpfile := "/tmp/todo_note.txt"
+	_ = os.WriteFile(tmpfile, []byte(initial), 0644)
+	cmd := exec.Command(os.Getenv("EDITOR"), tmpfile)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+	data, _ := os.ReadFile(tmpfile)
+	return strings.TrimSpace(string(data))
 }

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"todo/config"
-	todo "todo/todo.int"
+	"todo/todo.int"
 
 	"github.com/fatih/color"
 )
@@ -299,4 +299,58 @@ func mustSelectSingleTask() (*todo.Task, error) {
 		return nil, err
 	}
 	return &tasks[0], nil
+}
+
+func handleNote() {
+	selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
+	if err != nil || len(selected) == 0 {
+		fmt.Println("❌ Error selecting task:", err)
+		return
+	}
+	task := selected[0]
+
+	note := todo.PromptMultiline("📝 Edit note", task.Notes)
+	if note == "" {
+		fmt.Println("No changes made.")
+		return
+	}
+
+	err = todo.UpdateTaskByID(task.ID, func(t *todo.Task) {
+		t.Notes = note
+	})
+	if err != nil {
+		fmt.Println("❌ Failed to update notes:", err)
+		return
+	}
+	fmt.Println("✅ Notes saved.")
+}
+
+func handleSubtask() {
+	selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
+	if err != nil || len(selected) == 0 {
+		fmt.Println("❌ Error selecting parent task:", err)
+		return
+	}
+	parent := selected[0]
+
+	text := todo.PromptInput("📌 Subtask text", "")
+	if text == "" {
+		fmt.Println("Subtask not created.")
+		return
+	}
+
+	tasks, _ := todo.LoadTasks()
+	subtask := todo.Task{
+		ID:        len(tasks) + 1,
+		Text:      text,
+		ParentID:  parent.ID,
+		Completed: false,
+	}
+	tasks = append(tasks, subtask)
+
+	if err := todo.SaveTasks(tasks); err != nil {
+		fmt.Println("❌ Failed to save subtask:", err)
+		return
+	}
+	fmt.Println("✅ Subtask added.")
 }

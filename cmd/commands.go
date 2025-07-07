@@ -28,7 +28,7 @@ func HandleCommands() {
 	}
 
 	// 🧃 Launch TUI if enabled
-	if configEnableTui {
+	if config.EnableTui {
 		StartTUI()
 		return
 	}
@@ -89,6 +89,10 @@ func HandleCommands() {
 		printHelp()
 	case "tui":
 		StartTUI()
+	case "note":
+		handleNote()
+	case "subtask":
+		handleSubtask()
 
 	default:
 		fmt.Println("❌ Unknown command:", cmd)

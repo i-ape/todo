@@ -7,10 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"todo/config"
-	"todo/todo.int"
-
-	"github.com/fatih/color"
+	config "todo/config"
+	todo "todo/todo.int"
 )
 
 // --- Handlers ---
@@ -240,6 +238,7 @@ func handleReset() {
 func handleList() {
 	args := os.Args[2:]
 	opts := todo.ListFilterOptions{}
+	showNotes := false
 
 	for _, arg := range args {
 		switch {
@@ -253,6 +252,8 @@ func handleList() {
 			opts.TodayOnly = true
 		case arg == "--overdue":
 			opts.OverdueOnly = true
+		case arg == "--notes", arg == "--verbose":
+			showNotes = true
 		case strings.HasPrefix(arg, "--tag="):
 			opts.Tags = strings.TrimPrefix(arg, "--tag=")
 		case strings.HasPrefix(arg, "--priority="):
@@ -265,8 +266,18 @@ func handleList() {
 		fmt.Println("❌ Failed to load tasks:", err)
 		return
 	}
-
 	filtered := todo.FilterAndSortTasks(tasks, opts)
+
+	// map parent ID → children
+	children := map[int][]todo.Task{}
+	parents := []todo.Task{}
+	for _, task := range filtered {
+		if task.ParentID > 0 {
+			children[task.ParentID] = append(children[task.ParentID], task)
+		} else {
+			parents = append(parents, task)
+		}
+	}
 
 	if opts.JSONOutput {
 		data, _ := json.MarshalIndent(filtered, "", "  ")
@@ -274,21 +285,10 @@ func handleList() {
 		return
 	}
 
-	for _, task := range filtered {
-		label := fmt.Sprintf("%d: %s", task.ID, task.Text)
-		if task.DueDate != "" {
-			label += fmt.Sprintf(" (Due: %s)", task.DueDate)
-		}
-		if len(task.Tags) > 0 {
-			label += " [" + strings.Join(task.Tags, ", ") + "]"
-		}
-		switch {
-		case task.Completed:
-			fmt.Println(color.GreenString("[✓] " + label))
-		case todo.IsOverdue(task.DueDate):
-			fmt.Println(color.RedString("[✗] " + label))
-		default:
-			fmt.Println(color.CyanString("[ ] " + label))
+	for _, parent := range parents {
+		todo.PrintTask(parent, showNotes)
+		for _, child := range children[parent.ID] {
+			todo.PrintTaskIndented(child, showNotes)
 		}
 	}
 }

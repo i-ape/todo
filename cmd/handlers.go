@@ -332,7 +332,13 @@ func handleNote() {
 	}
 	input := os.Args[2]
 	note := strings.Join(os.Args[3:], " ")
-	err := todo.UpdateTaskByID(input, func(t *todo.Task) {
+	id, err := strconv.Atoi(input)
+	if err != nil {
+		fmt.Println("❌ Invalid task ID")
+		return
+	}
+
+	err = todo.UpdateTaskByID(id, func(t *todo.Task) {
 		t.Notes = note
 	})
 	if err != nil {

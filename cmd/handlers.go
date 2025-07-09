@@ -301,7 +301,7 @@ func mustSelectSingleTask() (*todo.Task, error) {
 	return &tasks[0], nil
 }
 
-func handleNote() {
+func HandleNoteInteractive() {
 	selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
 	if err != nil || len(selected) == 0 {
 		fmt.Println("❌ Error selecting task:", err)
@@ -323,6 +323,23 @@ func handleNote() {
 		return
 	}
 	fmt.Println("✅ Notes saved.")
+}
+
+func handleNote() {
+	if len(os.Args) < 4 {
+		fmt.Println("Usage: todo note [task ID or text] [note text]")
+		return
+	}
+	input := os.Args[2]
+	note := strings.Join(os.Args[3:], " ")
+	err := todo.UpdateTaskByID(input, func(t *todo.Task) {
+		t.Notes = note
+	})
+	if err != nil {
+		fmt.Println("❌ Failed to update notes:", err)
+		return
+	}
+	fmt.Println("✅ Notes updated.")
 }
 
 func handleSubtask() {

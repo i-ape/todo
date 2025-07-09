@@ -90,8 +90,13 @@ func HandleCommands() {
 	case "tui":
 		StartTUI()
 	case "note":
-		handleNote()
-	case "subtask":
+		if config.DisableFzf {
+			handleNote() // CLI
+		} else {
+			HandleNoteInteractive() // FZF
+		}
+
+	case "sub":
 		handleSubtask()
 
 	default:

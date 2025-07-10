@@ -74,15 +74,23 @@ go build -o todo
 
 ## Commands
 
-- todo add "Write blog post"
-- todo add "Submit tax return" tomorrow
-- todo list
-- todo done 1
-- todo due 2 fri
-- todo search "blog"
-- todo delete 1
-- todo clear
-- todo tags [@tag|#tag]         → Filter tasks by tag
+| Command            | Example usage                      | What to check                                 |
+| ------------------ | ---------------------------------- | --------------------------------------------- |
+| `add`              | `todo add "Write blog post" today` | Adds task with optional due date              |
+| `list`             | `todo list`                        | Shows task list with correct labels, subtasks |
+| `done`             | `todo done`                        | Marks selected task(s) done                   |
+| `edit`             | `todo edit`                        | Updates task text                             |
+| `delete`           | `todo delete`                      | Deletes selected task(s)                      |
+| `due`              | `todo due 1 next week`             | Updates due date                              |
+| `priority`         | `todo priority`                    | Prompts and updates priority                  |
+| `tag`              | `todo tag`                         | Adds or edits tags                            |
+| `search`           | `todo search blog`                 | Matches text and returns task(s)              |
+| `note`             | `todo note 1 "Update with links"`  | Adds or edits notes                           |
+| `move`             | `todo move`                        | Reorders task in list                         |
+| `sub` or `subtask` | `todo sub 1 "Write draft"`         | Creates subtask under parent                  |
+| `clear`            | `todo clear`                       | Clears all tasks (confirm it empties list)    |
+| `reset`            | `todo reset`                       | Deletes `tasks.json`                          |
+
 
 ## Example
 
@@ -116,15 +124,15 @@ todo move                  → Reorder a task to new position
 
 ## flags
 
---no-fzf Disable fuzzy picker (manual fallback)
---done Show only completed tasks
---pending Show only incomplete tasks
---tag=work Filter by tag
---priority=high Filter by priority
---today Tasks due today
---overdue Show overdue tasks
---json Output tasks in JSON
---tui bubble tea interface
+| Flag                   | Example                     | Expected                        |
+| ---------------------- | --------------------------- | ------------------------------- |
+| `--tui`                | `todo --tui`                | Launches TUI (if implemented)   |
+| `--no-fzf`             | `todo list --no-fzf`        | Bypasses interactive FZF        |
+| `--json`               | `todo list --json`          | Returns JSON output             |
+| `--today`              | `todo list --today`         | Filters today’s tasks           |
+| `--done` / `--pending` | `todo list --done`          | Shows only completed/incomplete |
+| `--tag=work`           | `todo list --tag=work`      | Filters by tag                  |
+| `--priority=high`      | `todo list --priority=high` | Filters by priority             |
 
 ## 🧠 Learning Goals
 
@@ -141,7 +149,7 @@ todo move                  → Reorder a task to new position
 
 ## 🔮 Future Ideas
 
-Advanced tagging system (#tag, @context, filter/search by tag)
+Advanced tagging system (#tag, @context, filter/search by t
 
 Recurring tasks (e.g. daily, weekly, every Mon,Wed)
 

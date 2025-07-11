@@ -41,12 +41,28 @@ chmod +x todo
 
 ## 📂 Project Structure
 
-todo/
-├── main.go          # Entry point, dispatch commands
-├── commands.go      # All CLI logic (add/edit/list/etc)
-├── task.go          # Task struct and core logic
-├── storage.go       # JSON file read/write
-├── tasks.json       # Auto-generated task data
+- todo/
+- ├── main.go          # Entry point, dispatch commands
+- ├── commands.go      # All CLI logic (add/edit/list/etc)
+- ├── task.go          # Task struct and core logic
+- ├── storage.go       # JSON file read/write
+- ├── tasks.json       # Auto-generated task data
++ .
++ ├── cmd/
++ │   ├── main.go
++ │   ├── commands.go
++ │   ├── handlers.go
++ │   └── tui.go
++ ├── todo.int/
++ │   ├── task.go
++ │   ├── storage.go
++ │   ├── due.go
++ │   ├── fzf.go
++ │   ├── utils.go
++ ├── config/
++ │   └── config.go
++ ├── tasks.json       # Generated user data
+
 
 ## 🔧 Installation
 
@@ -71,6 +87,8 @@ go mod init todo
 1️⃣ Build the Program
 
 go build -o todo
+chmod +x todo
+./todo list
 
 ## Commands
 
@@ -117,8 +135,8 @@ todo add "Meeting @work" friday @ 14:00 for 45m
 todo add "Call mom @family" sunday @ 18:00 for 1h for 3weeks
 todo tui        # launch interactive interface
 todo --tui list # use tui selection for list
-todo pick         → Launch selector, print ID(s)
-todo pick --json  → Print selected task(s) as JSON
+todo list --fzf         # Launch FZF to filter
+todo list --json        # Export filtered task list
 todo move                  → Reorder a task to new position
 
 

@@ -34,7 +34,7 @@ func HandleCommands() {
 	}
 
 	if len(os.Args) < 2 {
-		printHelp()
+		handleList()
 		return
 	}
 
@@ -90,15 +90,9 @@ func HandleCommands() {
 	case "tui":
 		StartTUI()
 	case "note":
-		if config.DisableFzf {
-			handleNote() // CLI
-		} else {
-			HandleNoteInteractive() // FZF
-		}
-
+		handleNote()
 	case "sub":
 		handleSubtask()
-
 	default:
 		fmt.Println("❌ Unknown command:", cmd)
 		printHelp()
@@ -144,9 +138,12 @@ func printHelp() {
   todo add [text] [due?]       → Add new task
   todo list                    → List all tasks
   todo done                    → Mark one or more tasks done
-  todo due [id|text] [date]    → Set/change due date
-  todo delete                  → Delete one or more tasks
-  todo edit                    → Edit a task
+  todo due [id] [date]         → Change due date (supports natural lang)
+  todo delete                  → Delete selected task(s)
+  todo edit                    → Edit selected task
+  todo note [id] [text?]       → Edit notes (or use prompt)
+  todo sub [parent id] [text]  → Add subtask to task
+  todo move                    → Reorder task
   todo search [keyword]        → Search task text
   todo tag                     → Edit task tags
   todo clear                   → Clear all tasks

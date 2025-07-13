@@ -377,3 +377,15 @@ func handleSubtask() {
 	}
 	fmt.Println("✅ Subtask added.")
 }
+
+func handlePick() {
+	tasks, err := todo.SelectTasksWithFzf(true, config.DisableFzf)
+	if err != nil || len(tasks) == 0 {
+		fmt.Println("❌ No task selected:", err)
+		return
+	}
+
+	for _, t := range tasks {
+		fmt.Println(t.ID)
+	}
+}

@@ -152,6 +152,18 @@ todo move                  → Reorder a task to new position
 | `--tag=work`           | `todo list --tag=work`      | Filters by tag                  |
 | `--priority=high`      | `todo list --priority=high` | Filters by priority             |
 
+---
+
+### 🧪 `todo pick` Flags
+
+| Flag         | Example               | Description                                  |
+| ------------ | --------------------- | -------------------------------------------- |
+| `--json`     | `todo pick --json`    | Output selected task(s) in JSON              |
+| `--edit`     | `todo pick --edit`    | Edit selected task(s) in place               |
+| `--note`     | `todo pick --note`    | Add/edit notes for selected task(s)          |
+|              | `todo pick`           | Print ID(s) of selected task(s)       
+
+
 ## 🧠 Learning Goals
 
 ✅ Structs & methods

@@ -377,7 +377,6 @@ func handleSubtask() {
 	}
 	fmt.Println("✅ Subtask added.")
 }
-
 func handlePick() {
 	tasks, err := todo.SelectTasksWithFzf(true, config.DisableFzf)
 	if err != nil || len(tasks) == 0 {
@@ -385,7 +384,45 @@ func handlePick() {
 		return
 	}
 
-	for _, t := range tasks {
-		fmt.Println(t.ID)
+	switch {
+	case containsArg("--json"):
+		data, _ := json.MarshalIndent(tasks, "", "  ")
+		fmt.Println(string(data))
+
+	case containsArg("--edit"):
+		for _, task := range tasks {
+			newText := todo.PromptInput(fmt.Sprintf("✏️ Edit \"%s\"", task.Text), task.Text)
+			if newText != "" {
+				_ = todo.UpdateTaskByID(task.ID, func(t *todo.Task) {
+					t.Text = newText
+				})
+				fmt.Println("✅ Edited:", task.ID)
+			}
+		}
+
+	case containsArg("--note"):
+		for _, task := range tasks {
+			note := todo.PromptMultiline("📝 Note for "+task.Text, task.Notes)
+			if note != "" {
+				_ = todo.UpdateTaskByID(task.ID, func(t *todo.Task) {
+					t.Notes = note
+				})
+				fmt.Println("✅ Note saved:", task.ID)
+			}
+		}
+
+	default:
+		for _, t := range tasks {
+			fmt.Println(t.ID)
+		}
 	}
+}
+
+func containsArg(flag string) bool {
+	for _, arg := range os.Args {
+		if arg == flag {
+			return true
+		}
+	}
+	return false
 }

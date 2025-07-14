@@ -95,7 +95,6 @@ func HandleCommands() {
 		handleSubtask()
 	case "pick":
 		handlePick()
-
 	default:
 		fmt.Println("❌ Unknown command:", cmd)
 		printHelp()

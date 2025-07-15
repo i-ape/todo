@@ -246,3 +246,16 @@ func HasSubtasks(tasks []Task, taskID int) bool {
 	}
 	return false
 }
+
+func GetTaskByID(id int) (*Task, error) {
+	tasks, err := LoadTasks()
+	if err != nil {
+		return nil, err
+	}
+	for _, task := range tasks {
+		if task.ID == id {
+			return &task, nil
+		}
+	}
+	return nil, fmt.Errorf("task with ID %d not found", id)
+}

@@ -164,3 +164,30 @@ func PromptMultiline(prompt, initial string) string {
 	data, _ := os.ReadFile(tmpfile)
 	return strings.TrimSpace(string(data))
 }
+
+func PrintTaskDetails(task Task) {
+	fmt.Printf("📝 Task #%d: %s\n", task.ID, task.Text)
+	if task.Completed {
+		fmt.Println("Status: ✅ Completed")
+	} else {
+		fmt.Println("Status: ☐ Incomplete")
+	}
+	if task.DueDate != "" {
+		fmt.Println("Due:", task.DueDate)
+	}
+	if len(task.Tags) > 0 {
+		fmt.Println("Tags:", strings.Join(task.Tags, ", "))
+	}
+	if task.Priority != "" {
+		fmt.Println("Priority:", task.Priority)
+	}
+	if task.Recurring != "" {
+		fmt.Println("Repeats:", task.Recurring)
+	}
+	if task.Notes != "" {
+		fmt.Println("Notes:\n" + task.Notes)
+	}
+	if task.ParentID > 0 {
+		fmt.Printf("Subtask of: #%d\n", task.ParentID)
+	}
+}

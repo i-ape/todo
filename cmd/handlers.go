@@ -426,3 +426,36 @@ func containsArg(flag string) bool {
 	}
 	return false
 }
+func handleShow() {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: todo show [id]")
+		return
+	}
+	id, err := strconv.Atoi(os.Args[2])
+	if err != nil {
+		fmt.Println("Invalid ID")
+		return
+	}
+	task, err := todo.GetTaskByID(id)
+	if err != nil {
+		fmt.Println("❌", err)
+		return
+	}
+	todo.PrintTaskDetails(*task) // new function to show full info
+}
+
+func handleHelp() {
+	if len(os.Args) == 2 {
+		printHelp()
+		return
+	}
+	switch os.Args[2] {
+	case "add":
+		fmt.Println("Usage: todo add \"task text\" [due]")
+	case "note":
+		fmt.Println("Usage: todo note 1 \"Note content\"")
+	// ... add for others
+	default:
+		fmt.Println("Unknown command. Try `todo help`")
+	}
+}

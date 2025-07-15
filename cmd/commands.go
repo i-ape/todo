@@ -85,8 +85,6 @@ func HandleCommands() {
 		handleRecurring()
 	case "move":
 		handleMove()
-	case "help":
-		printHelp()
 	case "tui":
 		StartTUI()
 	case "note":
@@ -95,6 +93,11 @@ func HandleCommands() {
 		handleSubtask()
 	case "pick":
 		handlePick()
+	case "show":
+		handleShow()
+	case "help":
+		handleHelp()
+
 	default:
 		fmt.Println("❌ Unknown command:", cmd)
 		printHelp()

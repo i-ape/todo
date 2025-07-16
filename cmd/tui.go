@@ -79,6 +79,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.tasks = append(m.tasks, task)
 				_ = todo.SaveTasks(m.tasks)
 			}
+
 		}
 	}
 	return m, nil

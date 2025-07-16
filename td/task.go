@@ -2,6 +2,7 @@ package todo
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -71,9 +72,9 @@ type ListFilterOptions struct {
 	Priority    string
 }
 
-// FilterAndSortTasks filters and returns tasks based on ListFilterOptions
-func FilterAndSortTasks(tasks []Task, opts ListFilterOptions) []Task {
-	var result []Task
+// task.go
+func FilterTasks(tasks []Task, opts ListFilterOptions) []Task {
+	var filtered []Task
 	today := time.Now().Format("2006-01-02")
 
 	for _, task := range tasks {
@@ -104,33 +105,12 @@ func FilterAndSortTasks(tasks []Task, opts ListFilterOptions) []Task {
 		if opts.Priority != "" && !strings.EqualFold(task.Priority, opts.Priority) {
 			continue
 		}
-
-		result = append(result, task)
-	}
-
-	return result
-}
-
-// task.go
-func FilterTasks(tasks []Task, options ListFilterOptions) []Task {
-	var filtered []Task
-	today := time.Now().Format("2006-01-02")
-
-	for _, task := range tasks {
-		if options.ShowDone && !task.Completed {
-			continue
-		}
-		if options.ShowPending && task.Completed {
-			continue
-		}
-		if options.TodayOnly && task.DueDate != today {
-			continue
-		}
-		if options.OverdueOnly && !IsOverdue(task.DueDate) {
-			continue
-		}
 		filtered = append(filtered, task)
 	}
+	// Optional: Add sorting logic (e.g., by DueDate, Priority, or ID)
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].ID < filtered[j].ID // Example: sort by ID
+	})
 	return filtered
 }
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"todo/config"
-	"todo/todo.int"
+	"todo/td"
 	//"github.com/fatih/color"
 )
 
@@ -108,31 +108,31 @@ func HandleCommands() {
 // --- Task Management Functions ---
 
 func AddTask(text, due string) error {
-	return todo.AddTaskWithDueDate(text, due)
+	return td.AddTaskWithDueDate(text, due)
 }
 
 func MarkTaskDone(input string) error {
-	return todo.MarkTaskDone(input)
+	return td.MarkTaskDone(input)
 }
 
 func SetDueDate(input, dueDate string) error {
-	return todo.SetDueDate(input, dueDate)
+	return td.SetDueDate(input, dueDate)
 }
 
 func DeleteTask(input string) error {
-	return todo.DeleteTask(input)
+	return td.DeleteTask(input)
 }
 
 func ClearTasks() error {
-	return todo.ClearTasks()
+	return td.ClearTasks()
 }
 
 func ResetTasks() error {
-	return os.Remove("todo/tasks.json")
+	return os.Remove("td/tasks.json")
 }
 
 func SearchTasks(keyword string) {
-	todo.SearchTasks(keyword)
+	td.SearchTasks(keyword)
 }
 
 // --- Help ---

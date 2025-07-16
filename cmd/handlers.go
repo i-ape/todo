@@ -266,7 +266,7 @@ func handleList() {
 		fmt.Println("❌ Failed to load tasks:", err)
 		return
 	}
-	filtered := todo.FilterAndSortTasks(tasks, opts)
+	filtered := todo.FilterTasks(tasks, opts)
 
 	// map parent ID → children
 	children := map[int][]todo.Task{}

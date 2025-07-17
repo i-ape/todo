@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"todo/config"
-	"todo/todo.int"
 
 // LoadTasks reads tasks from disk using config-defined path
 func LoadTasks() ([]Task, error) {

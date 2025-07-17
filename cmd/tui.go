@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	todo "todo/todo.int"
+	todo "todo/td"
 
 	tea "github.com/charmbracelet/bubbletea"
 	color "github.com/fatih/color"
@@ -43,22 +43,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case " ", "enter":
 			m.tasks[m.cursor].Completed = !m.tasks[m.cursor].Completed
-			_ = todo.SaveTasks(m.tasks)
+			_ = td.SaveTasks(m.tasks)
 
 		case "x", "backspace":
 			m.tasks = append(m.tasks[:m.cursor], m.tasks[m.cursor+1:]...)
 			if m.cursor >= len(m.tasks) && m.cursor > 0 {
 				m.cursor--
 			}
-			_ = todo.SaveTasks(m.tasks)
+			_ = td.SaveTasks(m.tasks)
 
 		case "d":
 			newDue, ok := prompt("📅 Enter new due date:")
 			if ok {
-				parsed, err := todo.ParseNaturalDate(newDue)
+				parsed, err := td.ParseNaturalDate(newDue)
 				if err == nil {
 					m.tasks[m.cursor].DueDate = parsed
-					_ = todo.SaveTasks(m.tasks)
+					_ = td.SaveTasks(m.tasks)
 				}
 			}
 
@@ -66,18 +66,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			newText, ok := prompt("✏️ Edit task text:")
 			if ok && strings.TrimSpace(newText) != "" {
 				m.tasks[m.cursor].Text = strings.TrimSpace(newText)
-				_ = todo.SaveTasks(m.tasks)
+				_ = td.SaveTasks(m.tasks)
 			}
 
 		case "n":
 			newTask, ok := prompt("➕ New task:")
 			if ok && strings.TrimSpace(newTask) != "" {
-				task := todo.Task{
+				task := td.Task{
 					ID:   nextID(m.tasks),
 					Text: strings.TrimSpace(newTask),
 				}
 				m.tasks = append(m.tasks, task)
-				_ = todo.SaveTasks(m.tasks)
+				_ = td.SaveTasks(m.tasks)
 			}
 
 		}
@@ -100,7 +100,7 @@ func (m model) View() string {
 		status := color.CyanString("[ ]")
 		if task.Completed {
 			status = color.GreenString("[✓]")
-		} else if task.DueDate != "" && todo.IsOverdue(task.DueDate) {
+		} else if task.DueDate != "" && td.IsOverdue(task.DueDate) {
 			status = color.RedString("[✗]")
 		}
 		label := task.Text
@@ -172,7 +172,7 @@ func prompt(promptText string) (string, bool) {
 }
 
 func StartTUI() {
-	tasks, err := todo.LoadTasks()
+	tasks, err := td.LoadTasks()
 	if err != nil {
 		fmt.Println("Failed to load tasks:", err)
 		os.Exit(1)
@@ -183,7 +183,7 @@ func StartTUI() {
 		os.Exit(1)
 	}
 }
-func nextID(tasks []todo.Task) int {
+func nextID(tasks []td.Task) int {
 	max := 0
 	for _, t := range tasks {
 		if t.ID > max {

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"todo/config"
+	todo "todo/td"
 )
 
 // --- Handlers ---
@@ -27,7 +28,7 @@ func handleAdd() {
 }
 
 func handleEdit() {
-	selected, err := td.SelectTasksWithFzf(false, config.DisableFzf)
+	selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
 
 	if err != nil || len(selected) == 0 {
 		fmt.Println("Select error:", err)
@@ -35,19 +36,19 @@ func handleEdit() {
 	}
 	task := selected[0]
 
-	newText := td.PromptInput(fmt.Sprintf("✏️  Edit task \"%s\"", task.Text), task.Text)
+	newText := todo.PromptInput(fmt.Sprintf("✏️  Edit task \"%s\"", task.Text), task.Text)
 
 	if newText == "" {
 		fmt.Println("No changes made.")
 		return
 	}
-	if err := td.EditTaskText(strconv.Itoa(task.ID), newText); err != nil {
+	if err := todo.EditTaskText(strconv.Itoa(task.ID), newText); err != nil {
 		fmt.Println("Edit error:", err)
 	}
 }
 
 func handleDone() {
-	selected, err := td.SelectTasksWithFzf(false, config.DisableFzf)
+	selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
 
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -61,14 +62,14 @@ func handleDone() {
 }
 
 func handleDelete() {
-	selected, err := td.SelectTasksWithFzf(false, config.DisableFzf)
+	selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
 
 	if err != nil {
 		fmt.Println("Error selecting task:", err)
 		return
 	}
 	for _, task := range selected {
-		if err := td.DeleteTask(strconv.Itoa(task.ID)); err != nil {
+		if err := todo.DeleteTask(strconv.Itoa(task.ID)); err != nil {
 			fmt.Println("❌", err)
 		}
 	}
@@ -95,21 +96,21 @@ func handleSearch() {
 }
 
 func handlePriority() {
-	selected, err := td.SelectTasksWithFzf(false, config.DisableFzf)
+	selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
 	if err != nil || len(selected) == 0 {
 		fmt.Println("Error selecting task:", err)
 		return
 	}
 	task := selected[0]
 
-	newPriority := td.PromptInput("🔥 Set priority (high/medium/low)", task.Priority)
+	newPriority := todo.PromptInput("🔥 Set priority (high/medium/low)", task.Priority)
 	if newPriority == "" {
 		fmt.Println("No changes made.")
 		return
 	}
-	parsed := td.ParsePriority(newPriority)
+	parsed := todo.ParsePriority(newPriority)
 
-	err = td.UpdateTaskByID(task.ID, func(t *td.Task) {
+	err = todo.UpdateTaskByID(task.ID, func(t *todo.Task) {
 		t.Priority = parsed
 	})
 	if err != nil {
@@ -120,7 +121,7 @@ func handlePriority() {
 }
 
 func handleTags() {
-	selected, err := td.SelectTasksWithFzf(false, config.DisableFzf)
+	selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
 
 	if err != nil {
 		fmt.Println("Error selecting task:", err)
@@ -128,14 +129,14 @@ func handleTags() {
 	}
 	task := selected[0]
 
-	raw := td.PromptInput("🏷️ Edit tags (comma-separated)", strings.Join(task.Tags, ", "))
+	raw := todo.PromptInput("🏷️ Edit tags (comma-separated)", strings.Join(task.Tags, ", "))
 	if raw == "" {
 		fmt.Println("No changes made.")
 		return
 	}
-	tags := td.ParseTags(raw)
+	tags := todo.ParseTags(raw)
 
-	err = td.UpdateTaskByID(task.ID, func(t *td.Task) {
+	err = todo.UpdateTaskByID(task.ID, func(t *todo.Task) {
 		t.Tags = tags
 	})
 	if err != nil {
@@ -146,7 +147,7 @@ func handleTags() {
 }
 
 func handleRecurring() {
-	selected, err := td.SelectTasksWithFzf(false, config.DisableFzf)
+	selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
 
 	if err != nil {
 		fmt.Println("Error selecting task:", err)
@@ -154,13 +155,13 @@ func handleRecurring() {
 	}
 	task := selected[0]
 
-	rec := td.PromptInput("🔁 Set recurrence (daily, weekly, etc)", task.Recurring)
+	rec := todo.PromptInput("🔁 Set recurrence (daily, weekly, etc)", task.Recurring)
 	if rec == "" {
 		fmt.Println("No changes made.")
 		return
 	}
 
-	err = td.UpdateTaskByID(task.ID, func(t *td.Task) {
+	err = todo.UpdateTaskByID(task.ID, func(t *todo.Task) {
 		t.Recurring = rec
 	})
 	if err != nil {
@@ -177,14 +178,14 @@ func handleMove() {
 		return
 	}
 
-	tasks, err := td.LoadTasks()
+	tasks, err := todo.LoadTasks()
 	if err != nil {
 		fmt.Println("❌ Failed to load tasks:", err)
 		return
 	}
 
 	fmt.Printf("🪄 Task: \"%s\"\n", task.Text)
-	posStr := td.PromptInput("↕️ New position (1-based index)", "")
+	posStr := todo.PromptInput("↕️ New position (1-based index)", "")
 	pos, err := strconv.Atoi(posStr)
 	if err != nil || pos < 1 || pos > len(tasks) {
 		fmt.Println("❌ Invalid position")
@@ -192,8 +193,8 @@ func handleMove() {
 	}
 
 	// Remove task from current position
-	var moved td.Task
-	newList := []td.Task{}
+	var moved todo.Task
+	newList := []todo.Task{}
 	for _, t := range tasks {
 		if t.ID == task.ID {
 			moved = t
@@ -207,10 +208,10 @@ func handleMove() {
 	if pos >= len(newList) {
 		newList = append(newList, moved)
 	} else {
-		newList = append(newList[:pos], append([]td.Task{moved}, newList[pos:]...)...)
+		newList = append(newList[:pos], append([]todo.Task{moved}, newList[pos:]...)...)
 	}
 
-	if err := td.SaveTasks(newList); err != nil {
+	if err := todo.SaveTasks(newList); err != nil {
 		fmt.Println("❌ Failed to save:", err)
 		return
 	}
@@ -235,7 +236,7 @@ func handleReset() {
 }
 func handleList() {
 	args := os.Args[2:]
-	opts := td.ListFilterOptions{}
+	opts := todo.ListFilterOptions{}
 	showNotes := false
 
 	for _, arg := range args {
@@ -259,16 +260,16 @@ func handleList() {
 		}
 	}
 
-	tasks, err := td.LoadTasks()
+	tasks, err := todo.LoadTasks()
 	if err != nil {
 		fmt.Println("❌ Failed to load tasks:", err)
 		return
 	}
-	filtered := td.FilterTasks(tasks, opts)
+	filtered := todo.FilterTasks(tasks, opts)
 
 	// map parent ID → children
-	children := map[int][]td.Task{}
-	parents := []td.Task{}
+	children := map[int][]todo.Task{}
+	parents := []todo.Task{}
 	for _, task := range filtered {
 		if task.ParentID > 0 {
 			children[task.ParentID] = append(children[task.ParentID], task)
@@ -284,15 +285,15 @@ func handleList() {
 	}
 
 	for _, parent := range parents {
-		td.PrintTask(parent, showNotes)
+		todo.PrintTask(parent, showNotes)
 		for _, child := range children[parent.ID] {
-			td.PrintTaskIndented(child, showNotes)
+			todo.PrintTaskIndented(child, showNotes)
 		}
 	}
 }
 
-func mustSelectSingleTask() (*td.Task, error) {
-	tasks, err := td.SelectTasksWithFzf(false, config.DisableFzf)
+func mustSelectSingleTask() (*todo.Task, error) {
+	tasks, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
 	if err != nil {
 		return nil, err
 	}
@@ -300,20 +301,20 @@ func mustSelectSingleTask() (*td.Task, error) {
 }
 
 func HandleNoteInteractive() {
-	selected, err := td.SelectTasksWithFzf(false, config.DisableFzf)
+	selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
 	if err != nil || len(selected) == 0 {
 		fmt.Println("❌ Error selecting task:", err)
 		return
 	}
 	task := selected[0]
 
-	note := td.PromptMultiline("📝 Edit note", task.Notes)
+	note := todo.PromptMultiline("📝 Edit note", task.Notes)
 	if note == "" {
 		fmt.Println("No changes made.")
 		return
 	}
 
-	err = td.UpdateTaskByID(task.ID, func(t *td.Task) {
+	err = todo.UpdateTaskByID(task.ID, func(t *todo.Task) {
 		t.Notes = note
 	})
 	if err != nil {
@@ -336,7 +337,7 @@ func handleNote() {
 		return
 	}
 
-	err = td.UpdateTaskByID(id, func(t *td.Task) {
+	err = todo.UpdateTaskByID(id, func(t *todo.Task) {
 		t.Notes = note
 	})
 	if err != nil {
@@ -347,21 +348,21 @@ func handleNote() {
 }
 
 func handleSubtask() {
-	selected, err := td.SelectTasksWithFzf(false, config.DisableFzf)
+	selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
 	if err != nil || len(selected) == 0 {
 		fmt.Println("❌ Error selecting parent task:", err)
 		return
 	}
 	parent := selected[0]
 
-	text := td.PromptInput("📌 Subtask text", "")
+	text := todo.PromptInput("📌 Subtask text", "")
 	if text == "" {
 		fmt.Println("Subtask not created.")
 		return
 	}
 
-	tasks, _ := td.LoadTasks()
-	subtask := td.Task{
+	tasks, _ := todo.LoadTasks()
+	subtask := todo.Task{
 		ID:        len(tasks) + 1,
 		Text:      text,
 		ParentID:  parent.ID,
@@ -369,14 +370,14 @@ func handleSubtask() {
 	}
 	tasks = append(tasks, subtask)
 
-	if err := td.SaveTasks(tasks); err != nil {
+	if err := todo.SaveTasks(tasks); err != nil {
 		fmt.Println("❌ Failed to save subtask:", err)
 		return
 	}
 	fmt.Println("✅ Subtask added.")
 }
 func handlePick() {
-	tasks, err := td.SelectTasksWithFzf(true, config.DisableFzf)
+	tasks, err := todo.SelectTasksWithFzf(true, config.DisableFzf)
 	if err != nil || len(tasks) == 0 {
 		fmt.Println("❌ No task selected:", err)
 		return
@@ -389,9 +390,9 @@ func handlePick() {
 
 	case containsArg("--edit"):
 		for _, task := range tasks {
-			newText := td.PromptInput(fmt.Sprintf("✏️ Edit \"%s\"", task.Text), task.Text)
+			newText := todo.PromptInput(fmt.Sprintf("✏️ Edit \"%s\"", task.Text), task.Text)
 			if newText != "" {
-				_ = td.UpdateTaskByID(task.ID, func(t *td.Task) {
+				_ = todo.UpdateTaskByID(task.ID, func(t *todo.Task) {
 					t.Text = newText
 				})
 				fmt.Println("✅ Edited:", task.ID)
@@ -400,9 +401,9 @@ func handlePick() {
 
 	case containsArg("--note"):
 		for _, task := range tasks {
-			note := td.PromptMultiline("📝 Note for "+task.Text, task.Notes)
+			note := todo.PromptMultiline("📝 Note for "+task.Text, task.Notes)
 			if note != "" {
-				_ = td.UpdateTaskByID(task.ID, func(t *td.Task) {
+				_ = todo.UpdateTaskByID(task.ID, func(t *todo.Task) {
 					t.Notes = note
 				})
 				fmt.Println("✅ Note saved:", task.ID)
@@ -434,12 +435,12 @@ func handleShow() {
 		fmt.Println("Invalid ID")
 		return
 	}
-	task, err := td.GetTaskByID(id)
+	task, err := todo.GetTaskByID(id)
 	if err != nil {
 		fmt.Println("❌", err)
 		return
 	}
-	td.PrintTaskDetails(*task) // new function to show full info
+	todo.PrintTaskDetails(*task) // new function to show full info
 }
 
 func handleHelp() {

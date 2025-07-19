@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-
 	"todo/config"
+)
 
-// LoadTasks reads tasks from disk using config-defined path
 func LoadTasks() ([]Task, error) {
 	var tasks []Task
 	file, err := os.ReadFile(config.GetTaskFilePath())
@@ -21,7 +20,6 @@ func LoadTasks() ([]Task, error) {
 	return tasks, err
 }
 
-// SaveTasks writes tasks to disk
 func SaveTasks(tasks []Task) error {
 	data, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {

@@ -115,8 +115,8 @@ func MarkTaskDone(input string) error {
 	return todo.MarkTaskDone(input)
 }
 
-func SetodoueDate(input, dueDate string) error {
-	return todo.SetodoueDate(input, dueDate)
+func SetDueDate(input, dueDate string) error {
+	return todo.SetDueDate(input, dueDate)
 }
 
 func DeleteTask(input string) error {

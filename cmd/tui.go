@@ -7,6 +7,7 @@ import (
 	"strings"
 	todo "todo/td"
 
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fatih/color"
 )
@@ -160,48 +161,35 @@ func (m model) View() string {
 }
 
 type promptModel struct {
-	prompt  string
-	value   string
-	confirm bool
-	cancel  bool
+	input textinput.Model
 }
 
-func (p promptModel) Init() tea.Cmd { return nil }
+func (p promptModel) Init() tea.Cmd {
+	return textinput.Blink
+}
 
 func (p promptModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "enter":
-			p.confirm = true
-			return p, tea.Quit
-		case "esc":
-			p.cancel = true
-			return p, tea.Quit
-		case "backspace":
-			if len(p.value) > 0 {
-				p.value = p.value[:len(p.value)-1]
-			}
-		default:
-			p.value += msg.String()
-		}
-	}
-	return p, nil
+	var cmd tea.Cmd
+	p.input, cmd = p.input.Update(msg)
+	return p, cmd
 }
 
 func (p promptModel) View() string {
-	return fmt.Sprintf("\n%s\n> %s", p.prompt, p.value)
+	return fmt.Sprintf("\n%s\n> %s", p.input.Placeholder, p.input.View())
 }
 
 func prompt(promptText string) (string, bool) {
-	pm := promptModel{prompt: promptText}
-	p := tea.NewProgram(pm)
+	input := textinput.New()
+	input.Placeholder = promptText
+	input.Focus()
+	p := tea.NewProgram(promptModel{input: input})
 	m, err := p.Run()
 	if err != nil {
 		return "", false
 	}
 	final := m.(promptModel)
-	return strings.TrimSpace(final.value), final.confirm && !final.cancel
+	value := strings.TrimSpace(final.input.Value())
+	return value, value != ""
 }
 
 func StartTUI() {

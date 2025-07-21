@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -190,4 +191,20 @@ func PrintTaskDetails(task Task) {
 	if task.ParentID > 0 {
 		fmt.Printf("Subtask of: #%d\n", task.ParentID)
 	}
+}
+
+func SortTasks(tasks []Task, order string) {
+	sort.Slice(tasks, func(i, j int) bool {
+		switch order {
+		case "due":
+			return tasks[i].DueDate < tasks[j].DueDate
+		case "priority":
+			priorityOrder := map[string]int{"high": 3, "medium": 2, "low": 1}
+			return priorityOrder[tasks[i].Priority] > priorityOrder[tasks[j].Priority]
+		case "text":
+			return tasks[i].Text < tasks[j].Text
+		default:
+			return tasks[i].ID < tasks[j].ID
+		}
+	})
 }

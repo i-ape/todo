@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"todo/config"
 	todo "todo/td"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -16,7 +17,7 @@ type model struct {
 	tasks    []todo.Task
 	cursor   int
 	quitting bool
-	err      error // Added for error display
+	err      error
 }
 
 func (m model) Init() tea.Cmd {
@@ -41,7 +42,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case " ", "enter":
 			if len(m.tasks) > 0 {
 				m.tasks[m.cursor].Completed = !m.tasks[m.cursor].Completed
-				_ = todo.SaveTasks(m.tasks)
+				if err := todo.SaveTasks(m.tasks); err != nil {
+					m.err = err
+				} else {
+					m.err = nil
+				}
 			}
 		case "x", "backspace":
 			if len(m.tasks) > 0 {
@@ -49,7 +54,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.cursor >= len(m.tasks) && m.cursor > 0 {
 					m.cursor--
 				}
-				_ = todo.SaveTasks(m.tasks)
+				if err := todo.SaveTasks(m.tasks); err != nil {
+					m.err = err
+				} else {
+					m.err = nil
+				}
 			}
 		case "d":
 			newDue, ok := prompt("📅 Enter new due date (e.g., today, 2025-12-31):")
@@ -60,7 +69,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else {
 					m.tasks[m.cursor].DueDate = parsed
 					m.err = nil
-					_ = todo.SaveTasks(m.tasks)
+					if err := todo.SaveTasks(m.tasks); err != nil {
+						m.err = err
+					}
 				}
 			}
 		case "e":
@@ -68,49 +79,96 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if ok && strings.TrimSpace(newText) != "" {
 				m.tasks[m.cursor].Text = strings.TrimSpace(newText)
 				m.err = nil
-				_ = todo.SaveTasks(m.tasks)
+				if err := todo.SaveTasks(m.tasks); err != nil {
+					m.err = err
+				}
 			}
 		case "n":
 			newTask, ok := prompt("➕ New task:")
 			if ok && strings.TrimSpace(newTask) != "" {
-				tasks, _ := todo.LoadTasks()
-				task := todo.Task{
-					ID:       todo.NextTaskID(tasks),
-					Text:     strings.TrimSpace(newTask),
-					Priority: todo.ParsePriority("medium"),
+				tasks, err := todo.LoadTasks()
+				if err != nil {
+					m.err = err
+				} else {
+					task := todo.Task{
+						ID:       todo.NextTaskID(tasks),
+						Text:     strings.TrimSpace(newTask),
+						Priority: todo.ParsePriority(config.GetDefaultPriority()),
+					}
+					m.tasks = append(m.tasks, task)
+					m.err = nil
+					if err := todo.SaveTasks(m.tasks); err != nil {
+						m.err = err
+					}
 				}
-				m.tasks = append(m.tasks, task)
-				m.err = nil
-				_ = todo.SaveTasks(m.tasks)
 			}
 		case "t":
 			tags, ok := prompt("🏷️ Enter tags (comma-separated):")
 			if ok && strings.TrimSpace(tags) != "" {
 				m.tasks[m.cursor].Tags = todo.ParseTags(tags)
 				m.err = nil
-				_ = todo.SaveTasks(m.tasks)
+				if err := todo.SaveTasks(m.tasks); err != nil {
+					m.err = err
+				}
 			}
 		case "p":
 			priority, ok := prompt("🔥 Enter priority (high, medium, low):")
 			if ok && strings.TrimSpace(priority) != "" {
 				m.tasks[m.cursor].Priority = todo.ParsePriority(priority)
 				m.err = nil
-				_ = todo.SaveTasks(m.tasks)
+				if err := todo.SaveTasks(m.tasks); err != nil {
+					m.err = err
+				}
 			}
 		case "s":
 			text, ok := prompt("📌 Subtask text:")
 			if ok && strings.TrimSpace(text) != "" {
-				tasks, _ := todo.LoadTasks()
-				subtask := todo.Task{
-					ID:        todo.NextTaskID(tasks),
-					Text:      strings.TrimSpace(text),
-					ParentID:  m.tasks[m.cursor].ID,
-					Completed: false,
-					Priority:  todo.ParsePriority("medium"),
+				tasks, err := todo.LoadTasks()
+				if err != nil {
+					m.err = err
+				} else {
+					subtask := todo.Task{
+						ID:        todo.NextTaskID(tasks),
+						Text:      strings.TrimSpace(text),
+						ParentID:  m.tasks[m.cursor].ID,
+						Completed: false,
+						Priority:  todo.ParsePriority(config.GetDefaultPriority()),
+					}
+					m.tasks = append(m.tasks, subtask)
+					m.err = nil
+					if err := todo.SaveTasks(m.tasks); err != nil {
+						m.err = err
+					}
 				}
-				m.tasks = append(m.tasks, subtask)
+			}
+		case "f":
+			if !config.DisableFzf {
+				selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
+				if err != nil {
+					m.err = err
+				} else if len(selected) > 0 {
+					for i, task := range m.tasks {
+						if task.ID == selected[0].ID {
+							m.cursor = i
+							m.err = nil
+							break
+						}
+					}
+				}
+			} else {
+				m.err = fmt.Errorf("fzf is disabled")
+			}
+		case "r":
+			tasks, err := todo.LoadTasks()
+			if err != nil {
+				m.err = err
+			} else {
+				m.tasks = tasks
+				todo.SortTasks(m.tasks, config.GetSortOrder())
 				m.err = nil
-				_ = todo.SaveTasks(m.tasks)
+				if err := todo.SaveTasks(m.tasks); err != nil {
+					m.err = err
+				}
 			}
 		}
 	}
@@ -126,10 +184,24 @@ func (m model) View() string {
 		b.WriteString(color.RedString("Error: %v\n\n", m.err))
 	}
 	b.WriteString("📋 Tasks:\n\n")
-	for i, task := range m.tasks {
+	// Group tasks by ParentID
+	taskMap := make(map[int][]todo.Task)
+	var topLevel []todo.Task
+	for _, task := range m.tasks {
+		if task.ParentID == 0 {
+			topLevel = append(topLevel, task)
+		} else {
+			taskMap[task.ParentID] = append(taskMap[task.ParentID], task)
+		}
+	}
+	cursorIndex := -1
+	for i, task := range topLevel {
+		if m.cursor == len(topLevel) {
+			cursorIndex = i
+		}
 		cursor := "  "
-		if m.cursor == i {
-			cursor = "▶"
+		if i == cursorIndex {
+			cursor = "▶ "
 		}
 		status := color.CyanString("[ ]")
 		if task.Completed {
@@ -150,13 +222,32 @@ func (m model) View() string {
 		case "low":
 			label += color.BlueString(" ⬇")
 		}
-		indent := ""
-		if task.ParentID > 0 {
-			indent = "  ↳ "
+		b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, label))
+		// Add subtasks
+		for _, subtask := range taskMap[task.ID] {
+			subStatus := color.CyanString("[ ]")
+			if subtask.Completed {
+				subStatus = color.GreenString("[✓]")
+			} else if subtask.DueDate != "" && todo.IsOverdue(subtask.DueDate) {
+				subStatus = color.RedString("[✗]")
+			}
+			subLabel := subtask.Text
+			if subtask.DueDate != "" {
+				subLabel += color.YellowString(" 📅 %s", subtask.DueDate)
+			}
+			if len(subtask.Tags) > 0 {
+				subLabel += " 🏷️ " + strings.Join(subtask.Tags, ", ")
+			}
+			switch subtask.Priority {
+			case "high":
+				subLabel += color.RedString(" 🔥")
+			case "low":
+				subLabel += color.BlueString(" ⬇")
+			}
+			b.WriteString(fmt.Sprintf("    ↳ %s %s\n", subStatus, subLabel))
 		}
-		b.WriteString(fmt.Sprintf("%s %s %s%s\n", cursor, status, indent, label))
 	}
-	b.WriteString("\n↑/↓ or j/k: navigate, [enter]: toggle, [x]: delete, [n]: new, [d]: due date, [e]: edit, [t]: tags, [p]: priority, [s]: subtask, [q]: quit\n")
+	b.WriteString("\n↑/↓ or j/k: navigate, [enter]: toggle, [x]: delete, [n]: new, [d]: due date, [e]: edit, [t]: tags, [p]: priority, [s]: subtask, [f]: fzf select, [r]: sort, [q]: quit\n")
 	return b.String()
 }
 

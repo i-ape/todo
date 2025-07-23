@@ -18,13 +18,177 @@ type model struct {
 	cursor   int
 	quitting bool
 	err      error
+	state    string          // Tracks TUI state (e.g., "normal", "new_task", "new_priority", "new_due", "new_tags")
+	newTask  todo.Task       // Temporary task being created
+	input    textinput.Model // Current input field
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	return textinput.Blink
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	fmt.Fprintf(os.Stderr, "Key pressed: %s\n", msg) // Debug log
+	if m.state != "normal" {
+		var cmd tea.Cmd
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "ctrl+c", "q", "esc":
+				m.state = "normal"
+				m.input.Reset()
+				m.err = nil
+				return m, nil
+			case "enter":
+				value := strings.TrimSpace(m.input.Value())
+				switch m.state {
+				case "new_task":
+					if value != "" {
+						m.newTask = todo.Task{
+							ID:   todo.NextTaskID(m.tasks),
+							Text: value,
+						}
+						m.state = "new_priority"
+						m.input.Reset()
+						m.input.Placeholder = "🔥 Enter priority (high, medium, low, or enter for default):"
+						return m, textinput.Blink
+					}
+					m.err = fmt.Errorf("task name cannot be empty")
+					m.state = "normal"
+					m.input.Reset()
+					return m, nil
+				case "new_priority":
+					priority := config.GetDefaultPriority()
+					if value != "" {
+						if todo.ParsePriority(value) == "" {
+							m.err = fmt.Errorf("invalid priority: %s", value)
+							m.state = "normal"
+							m.input.Reset()
+							return m, nil
+						}
+						priority = value
+					}
+					m.newTask.Priority = todo.ParsePriority(priority)
+					m.state = "new_due"
+					m.input.Reset()
+					m.input.Placeholder = "📅 Enter due date (e.g., today, 2025-12-31, or enter to skip):"
+					return m, textinput.Blink
+				case "new_due":
+					if value != "" {
+						dueDate, err := todo.ParseNaturalDate(value)
+						if err != nil {
+							m.err = err
+							m.state = "normal"
+							m.input.Reset()
+							return m, nil
+						}
+						m.newTask.DueDate = dueDate
+					}
+					m.state = "new_tags"
+					m.input.Reset()
+					m.input.Placeholder = "🏷️ Enter tags (comma-separated, or enter to skip):"
+					return m, textinput.Blink
+				case "new_tags":
+					if value != "" {
+						m.newTask.Tags = todo.ParseTags(value)
+					}
+					m.tasks = append(m.tasks, m.newTask)
+					if err := todo.SaveTasks(m.tasks); err != nil {
+						m.err = err
+					} else {
+						m.err = nil
+					}
+					m.state = "normal"
+					m.input.Reset()
+					return m, nil
+				case "edit_text":
+					if value != "" {
+						m.tasks[m.cursor].Text = value
+						if err := todo.SaveTasks(m.tasks); err != nil {
+							m.err = err
+						} else {
+							m.err = nil
+						}
+					}
+					m.state = "normal"
+					m.input.Reset()
+					return m, nil
+				case "edit_due":
+					if value != "" {
+						dueDate, err := todo.ParseNaturalDate(value)
+						if err != nil {
+							m.err = err
+							m.state = "normal"
+							m.input.Reset()
+							return m, nil
+						}
+						m.tasks[m.cursor].DueDate = dueDate
+						if err := todo.SaveTasks(m.tasks); err != nil {
+							m.err = err
+						} else {
+							m.err = nil
+						}
+					}
+					m.state = "normal"
+					m.input.Reset()
+					return m, nil
+				case "edit_tags":
+					if value != "" {
+						m.tasks[m.cursor].Tags = todo.ParseTags(value)
+						if err := todo.SaveTasks(m.tasks); err != nil {
+							m.err = err
+						} else {
+							m.err = nil
+						}
+					}
+					m.state = "normal"
+					m.input.Reset()
+					return m, nil
+				case "edit_priority":
+					if value != "" {
+						if todo.ParsePriority(value) == "" {
+							m.err = fmt.Errorf("invalid priority: %s", value)
+							m.state = "normal"
+							m.input.Reset()
+							return m, nil
+						}
+						m.tasks[m.cursor].Priority = todo.ParsePriority(value)
+						if err := todo.SaveTasks(m.tasks); err != nil {
+							m.err = err
+						} else {
+							m.err = nil
+						}
+					}
+					m.state = "normal"
+					m.input.Reset()
+					return m, nil
+				case "new_subtask":
+					if value != "" {
+						subtask := todo.Task{
+							ID:        todo.NextTaskID(m.tasks),
+							Text:      value,
+							ParentID:  m.tasks[m.cursor].ID,
+							Completed: false,
+							Priority:  todo.ParsePriority(config.GetDefaultPriority()),
+						}
+						m.tasks = append(m.tasks, subtask)
+						if err := todo.SaveTasks(m.tasks); err != nil {
+							m.err = err
+						} else {
+							m.err = nil
+						}
+					}
+					m.state = "normal"
+					m.input.Reset()
+					return m, nil
+				}
+			default:
+				m.input, cmd = m.input.Update(msg)
+			}
+		}
+		return m, cmd
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -61,86 +225,41 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		case "d":
-			newDue, ok := prompt("📅 Enter new due date (e.g., today, 2025-12-31):")
-			if ok && strings.TrimSpace(newDue) != "" {
-				parsed, err := todo.ParseNaturalDate(newDue)
-				if err != nil {
-					m.err = err
-				} else {
-					m.tasks[m.cursor].DueDate = parsed
-					m.err = nil
-					if err := todo.SaveTasks(m.tasks); err != nil {
-						m.err = err
-					}
-				}
-			}
+			m.state = "edit_due"
+			m.input = textinput.New()
+			m.input.Placeholder = "📅 Enter new due date (e.g., today, 2025-12-31):"
+			m.input.Focus()
+			return m, textinput.Blink
 		case "e":
-			newText, ok := prompt("✏️ Edit task text:")
-			if ok && strings.TrimSpace(newText) != "" {
-				m.tasks[m.cursor].Text = strings.TrimSpace(newText)
-				m.err = nil
-				if err := todo.SaveTasks(m.tasks); err != nil {
-					m.err = err
-				}
-			}
+			m.state = "edit_text"
+			m.input = textinput.New()
+			m.input.Placeholder = "✏️ Edit task text:"
+			m.input.Focus()
+			return m, textinput.Blink
 		case "n":
-			newTask, ok := prompt("➕ New task:")
-			if ok && strings.TrimSpace(newTask) != "" {
-				tasks, err := todo.LoadTasks()
-				if err != nil {
-					m.err = err
-				} else {
-					task := todo.Task{
-						ID:       todo.NextTaskID(tasks),
-						Text:     strings.TrimSpace(newTask),
-						Priority: todo.ParsePriority(config.GetDefaultPriority()),
-					}
-					m.tasks = append(m.tasks, task)
-					m.err = nil
-					if err := todo.SaveTasks(m.tasks); err != nil {
-						m.err = err
-					}
-				}
-			}
+			m.state = "new_task"
+			m.input = textinput.New()
+			m.input.Placeholder = "➕ New task:"
+			m.input.Focus()
+			return m, textinput.Blink
 		case "t":
-			tags, ok := prompt("🏷️ Enter tags (comma-separated):")
-			if ok && strings.TrimSpace(tags) != "" {
-				m.tasks[m.cursor].Tags = todo.ParseTags(tags)
-				m.err = nil
-				if err := todo.SaveTasks(m.tasks); err != nil {
-					m.err = err
-				}
-			}
+			m.state = "edit_tags"
+			m.input = textinput.New()
+			m.input.Placeholder = "🏷️ Enter tags (comma-separated):"
+			m.input.Focus()
+			return m, textinput.Blink
 		case "p":
-			priority, ok := prompt("🔥 Enter priority (high, medium, low):")
-			if ok && strings.TrimSpace(priority) != "" {
-				m.tasks[m.cursor].Priority = todo.ParsePriority(priority)
-				m.err = nil
-				if err := todo.SaveTasks(m.tasks); err != nil {
-					m.err = err
-				}
-			}
+			m.state = "edit_priority"
+			m.input = textinput.New()
+			m.input.Placeholder = "🔥 Enter priority (high, medium, low):"
+			m.input.Focus()
+			return m, textinput.Blink
 		case "s":
-			text, ok := prompt("📌 Subtask text:")
-			if ok && strings.TrimSpace(text) != "" {
-				tasks, err := todo.LoadTasks()
-				if err != nil {
-					m.err = err
-				} else {
-					subtask := todo.Task{
-						ID:        todo.NextTaskID(tasks),
-						Text:      strings.TrimSpace(text),
-						ParentID:  m.tasks[m.cursor].ID,
-						Completed: false,
-						Priority:  todo.ParsePriority(config.GetDefaultPriority()),
-					}
-					m.tasks = append(m.tasks, subtask)
-					m.err = nil
-					if err := todo.SaveTasks(m.tasks); err != nil {
-						m.err = err
-					}
-				}
-			}
+			m.state = "new_subtask"
+			m.input = textinput.New()
+			m.input.Placeholder = "📌 Subtask text:"
+			m.input.Focus()
+			return m, textinput.Blink
 		case "f":
 			if !config.DisableFzf {
 				selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
@@ -159,16 +278,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.err = fmt.Errorf("fzf is disabled")
 			}
 		case "r":
-			tasks, err := todo.LoadTasks()
-			if err != nil {
+			todo.SortTasks(m.tasks, config.GetSortOrder())
+			if err := todo.SaveTasks(m.tasks); err != nil {
 				m.err = err
 			} else {
-				m.tasks = tasks
-				todo.SortTasks(m.tasks, config.GetSortOrder())
 				m.err = nil
-				if err := todo.SaveTasks(m.tasks); err != nil {
-					m.err = err
-				}
 			}
 		}
 	}
@@ -184,9 +298,8 @@ func (m model) View() string {
 		b.WriteString(color.RedString("Error: %v\n\n", m.err))
 	}
 	b.WriteString("📋 Tasks:\n\n")
-	// Group tasks by ParentID
 	taskMap := make(map[int][]todo.Task)
-	var topLevel []todo.Task
+	topLevel := make([]todo.Task, 0, len(m.tasks)) // Pre-allocate
 	for _, task := range m.tasks {
 		if task.ParentID == 0 {
 			topLevel = append(topLevel, task)
@@ -194,13 +307,9 @@ func (m model) View() string {
 			taskMap[task.ParentID] = append(taskMap[task.ParentID], task)
 		}
 	}
-	cursorIndex := -1
-	for i, task := range topLevel {
-		if m.cursor == len(topLevel) {
-			cursorIndex = i
-		}
+	for i, task := range topLevel { // Iterate topLevel instead of m.tasks
 		cursor := "  "
-		if i == cursorIndex {
+		if i == m.cursor {
 			cursor = "▶ "
 		}
 		status := color.CyanString("[ ]")
@@ -223,7 +332,7 @@ func (m model) View() string {
 			label += color.BlueString(" ⬇")
 		}
 		b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, label))
-		// Add subtasks
+		// Display subtasks
 		for _, subtask := range taskMap[task.ID] {
 			subStatus := color.CyanString("[ ]")
 			if subtask.Completed {
@@ -251,45 +360,13 @@ func (m model) View() string {
 	return b.String()
 }
 
-type promptModel struct {
-	input textinput.Model
-}
-
-func (p promptModel) Init() tea.Cmd {
-	return textinput.Blink
-}
-
-func (p promptModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-	p.input, cmd = p.input.Update(msg)
-	return p, cmd
-}
-
-func (p promptModel) View() string {
-	return fmt.Sprintf("\n%s\n> %s", p.input.Placeholder, p.input.View())
-}
-
-func prompt(promptText string) (string, bool) {
-	input := textinput.New()
-	input.Placeholder = promptText
-	input.Focus()
-	p := tea.NewProgram(promptModel{input: input})
-	m, err := p.Run()
-	if err != nil {
-		return "", false
-	}
-	final := m.(promptModel)
-	value := strings.TrimSpace(final.input.Value())
-	return value, value != ""
-}
-
 func StartTUI() {
 	tasks, err := todo.LoadTasks()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load tasks: %v\n", err)
 		os.Exit(1)
 	}
-	p := tea.NewProgram(model{tasks: tasks})
+	p := tea.NewProgram(model{tasks: tasks}, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
 		os.Exit(1)

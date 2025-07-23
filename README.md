@@ -154,6 +154,27 @@ todo move                  → Reorder a task to new position
 
 ---
 
+## TUI Keybindings and Configuration
+
+| Flag / Keybinding             | Example                             | Expected                                              |
+|-------------------------------|-------------------------------------|-------------------------------------------------------|
+| `n`                           | Press `n` in TUI                    | Prompts for new task (name, priority, due date, tags) |
+| `j` / `k` or `down` / `up`    | Press `j` or `k` in TUI             | Navigates to next/previous task                       |
+| `Enter` / `space`             | Press `Enter` or `space` in TUI     | Toggles task completion status                        |
+| `x` / `backspace`             | Press `x` or `backspace` in TUI     | Deletes selected task                                 |
+| `d`                           | Press `d` in TUI                    | Prompts to set due date for selected task             |
+| `e`                           | Press `e` in TUI                    | Prompts to edit selected task’s text                  |
+| `t`                           | Press `t` in TUI                    | Prompts to set tags for selected task                 |
+| `p`                           | Press `p` in TUI                    | Prompts to set priority for selected task             |
+| `s`                           | Press `s` in TUI                    | Prompts to add a subtask to selected task             |
+| `f`                           | Press `f` in TUI                    | Opens fzf to select a task (if fzf enabled)           |
+| `r`                           | Press `r` in TUI                    | Sorts tasks based on TODO_SORT order                  |
+| `q` / `Ctrl+C`                | Press `q` or `Ctrl+C` in TUI        | Quits the TUI                                         |
+| `TODO_TUI`                    | `export TODO_TUI=true; todo`        | Enables TUI by default (`true`/`false`, default: `false`) |
+| `TODO_DEFAULT_PRIORITY`       | `export TODO_DEFAULT_PRIORITY=high` | Sets default task priority (`high`/`medium`/`low`, default: `medium`) |
+| `TODO_SORT`                   | `export TODO_SORT=due`              | Sets sort order (`id`/`due`/`priority`/`text`, default: `id`) |
+
+
 ### 🧪 `todo pick` Flags
 
 | Flag         | Example               | Description                                  |

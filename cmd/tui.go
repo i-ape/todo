@@ -14,13 +14,14 @@ import (
 )
 
 type model struct {
-	tasks    []todo.Task
-	cursor   int
-	quitting bool
-	err      error
-	state    string          // Tracks TUI state (e.g., "normal", "new_task", "new_priority", "new_due", "new_tags")
-	newTask  todo.Task       // Temporary task being created
-	input    textinput.Model // Current input field
+	tasks     []todo.Task
+	cursor    int
+	quitting  bool
+	err       error
+	state     string          // Tracks TUI state (e.g., "normal", "new_task", "new_priority", "new_due", "new_tags")
+	newTask   todo.Task       // Temporary task being created
+	input     textinput.Model // Current input field
+	filterTag string
 }
 
 func (m model) Init() tea.Cmd {
@@ -162,6 +163,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.state = "normal"
 					m.input.Reset()
 					return m, nil
+				case "filter_tag":
+					if value != "" {
+						m.filterTag = value
+					} else {
+						m.filterTag = "" // Clear filter if empty
+					}
+					m.state = "normal"
+					m.input.Reset()
+					return m, nil
 				case "new_subtask":
 					if value != "" {
 						subtask := todo.Task{
@@ -208,6 +218,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.tasks[m.cursor].Completed = !m.tasks[m.cursor].Completed
 				if err := todo.SaveTasks(m.tasks); err != nil {
 					m.err = err
+					fmt.Fprintf(os.Stderr, "Error saving tasks: %v\n", err)
 				} else {
 					m.err = nil
 				}
@@ -220,6 +231,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				if err := todo.SaveTasks(m.tasks); err != nil {
 					m.err = err
+					fmt.Fprintf(os.Stderr, "Error saving tasks: %v\n", err)
 				} else {
 					m.err = nil
 				}
@@ -261,29 +273,43 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.input.Focus()
 			return m, textinput.Blink
 		case "f":
-			if !config.DisableFzf {
-				selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
-				if err != nil {
-					m.err = err
-				} else if len(selected) > 0 {
-					for i, task := range m.tasks {
-						if task.ID == selected[0].ID {
-							m.cursor = i
-							m.err = nil
-							break
-						}
-					}
-				}
-			} else {
+			if config.DisableFzf {
 				m.err = fmt.Errorf("fzf is disabled")
+				fmt.Fprintf(os.Stderr, "Error: fzf is disabled\n")
+				return m, nil
 			}
+			selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
+			if err != nil {
+				m.err = err
+				fmt.Fprintf(os.Stderr, "Error selecting task with fzf: %v\n", err)
+				return m, nil
+			}
+			if len(selected) == 0 {
+				m.err = fmt.Errorf("no task selected")
+				fmt.Fprintf(os.Stderr, "No task selected with fzf\n")
+				return m, nil
+			}
+			for i, task := range m.tasks {
+				if task.ID == selected[0].ID {
+					m.cursor = i
+					m.err = nil
+					fmt.Fprintf(os.Stderr, "Selected task ID %d at cursor %d\n", task.ID, i)
+					break
+				}
+			}
+			return m, nil
 		case "r":
 			todo.SortTasks(m.tasks, config.GetSortOrder())
 			if err := todo.SaveTasks(m.tasks); err != nil {
 				m.err = err
+				fmt.Fprintf(os.Stderr, "Error saving tasks: %v\n", err)
 			} else {
 				m.err = nil
 			}
+		case "c": // Clear error
+			m.err = nil
+			fmt.Fprintf(os.Stderr, "Error cleared\n")
+			return m, nil
 		}
 	}
 	return m, nil

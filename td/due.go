@@ -17,32 +17,34 @@ func IsOverdue(date string) bool {
 	return err == nil && time.Now().After(due)
 }
 
-//
-// 🧠 NATURAL LANGUAGE DATE PARSING
-//
-
 // ParseNaturalDate parses strings like:
 // "tomorrow", "in 3 days", "2024-05-20", "fri", etc.
+// ParseNaturalDate parses natural language dates into YYYY-MM-DD format
 func ParseNaturalDate(input string) (string, error) {
 	input = strings.ToLower(strings.TrimSpace(input))
-	now := time.Now()
+	if input == "" {
+		return "", fmt.Errorf("date cannot be empty")
+	}
 
-	// Handle abbreviation shortcut keywords
+	// Use local time zone for consistency
+	now := time.Now().Local()
+
+	// Handle abbreviation shortcuts (e.g., "today", "tomorrow")
 	if f, ok := abbreviationMap[input]; ok {
 		return f(now), nil
 	}
 
-	// Handle "in N days/weeks/months" format
-	if strings.HasPrefix(input, "in ") {
-		parts := strings.Fields(input[3:])
-		if len(parts) != 2 {
-			return "", fmt.Errorf("invalid relative date format: %s", input)
+	// Handle relative dates (e.g., "in 2 days", "2 weeks", "next month")
+	if matches := relativeDateRegex.FindStringSubmatch(input); matches != nil {
+		unit := matches[2]
+		num := 1 // Default to 1 for "next <unit>"
+		if matches[1] != "" {
+			var err error
+			num, err = strconv.Atoi(matches[1])
+			if err != nil {
+				return "", fmt.Errorf("invalid number: %s", matches[1])
+			}
 		}
-		num, err := strconv.Atoi(parts[0])
-		if err != nil {
-			return "", fmt.Errorf("invalid number in relative date: %v", err)
-		}
-		unit := parts[1]
 		switch unit {
 		case "d", "day", "days":
 			return now.AddDate(0, 0, num).Format("2006-01-02"), nil
@@ -50,19 +52,26 @@ func ParseNaturalDate(input string) (string, error) {
 			return now.AddDate(0, 0, num*7).Format("2006-01-02"), nil
 		case "m", "month", "months":
 			return now.AddDate(0, num, 0).Format("2006-01-02"), nil
-		default:
-			return "", fmt.Errorf("unsupported unit: %s", unit)
 		}
 	}
 
-	// Fallback to specific date formats
-	for _, layout := range []string{"2006-01-02", "02-01-2006"} {
-		if t, err := time.Parse(layout, input); err == nil {
+	// Handle natural language dates (e.g., "Dec 31, 2025", "31 Dec 2025")
+	if date, err := parseNaturalLanguageDate(input, now); err == nil {
+		return date, nil
+	}
+
+	// Try specific date formats
+	for _, layout := range []string{
+		"2006-01-02", // YYYY-MM-DD
+		"02-01-2006", // DD-MM-YYYY
+		"01-02-2006", // MM-DD-YYYY
+	} {
+		if t, err := time.ParseInLocation(layout, input, time.Local); err == nil {
 			return t.Format("2006-01-02"), nil
 		}
 	}
 
-	return "", fmt.Errorf("could not parse date: %s", input)
+	return "", fmt.Errorf("invalid date format: %s. Use YYYY-MM-DD, DD-MM-YYYY, MM-DD-YYYY, 'today', 'in N days', or 'Dec 31, 2025'", input)
 }
 
 //
@@ -106,6 +115,55 @@ func ParseDateTimeDuration(input string) (date, timeStr, duration string, err er
 
 	return date, timeStr, duration, nil
 }
+
+
+
+// parseNaturalLanguageDate handles formats like "Dec 31, 2025" or "31 Dec 2025"
+func parseNaturalLanguageDate(input string, now time.Time) (string, error) {
+    parts := strings.Fields(input)
+    if len(parts) < 2 || len(parts) > 3 {
+        return "", fmt.Errorf("invalid natural language date")
+    }
+
+    var day, month, year int
+    var err error
+
+    // Try "Dec 31, 2025" or "31 Dec 2025"
+    if monthNum, ok := monthNames[parts[0]]; ok && len(parts) == 3 {
+        month = monthNum
+        day, err = strconv.Atoi(parts[1])
+        if err != nil {
+            return "", fmt.Errorf("invalid day: %s", parts[1])
+        }
+        year, err = strconv.Atoi(parts[2])
+        if err != nil {
+            return "", fmt.Errorf("invalid year: %s", parts[2])
+        }
+    } else if monthNum, ok := monthNames[parts[1]]; ok && len(parts) >= 2 {
+        month = monthNum
+        day, err = strconv.Atoi(parts[0])
+        if err != nil {
+            return "", fmt.Errorf("invalid day: %s", parts[0])
+        }
+        if len(parts) == 3 {
+            year, err = strconv.Atoi(parts[2])
+            if err != nil {
+                return "", fmt.Errorf("invalid year: %s", parts[2])
+            }
+        } else {
+            year = now.Year()
+        }
+    } else {
+        return "", fmt.Errorf("invalid month name")
+    }
+
+    // Validate date
+    t := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+    if t.Year() != year || t.Month() != time.Month(month) || t.Day() != day {
+        return "", fmt.Errorf("invalid date: %s", input)
+    }
+
+    
 
 //
 // 🔠 SHORTCUT KEYWORDS MAP

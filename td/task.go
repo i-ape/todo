@@ -28,7 +28,7 @@ func AddTaskWithDueDate(text, due string) error {
 	tasks, _ := LoadTasks()
 	parsed := ""
 	if due != "" {
-		dt, err := parseNaturalDate(due)
+		dt, err := ParseNaturalDate(due)
 		if err != nil {
 			return err
 		}

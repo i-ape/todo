@@ -1,7 +1,3 @@
-# todo
-
-i wanna get good at go since typescript uses it :)
-
 ## 📝 Go ToDo List
 
 ## 📌 Project Overview

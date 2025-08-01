@@ -24,6 +24,25 @@ type model struct {
 	filterTag string
 }
 
+func NewModel() model {
+	tasks, err := todo.LoadTasks()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to load tasks: %v\n", err)
+		os.Exit(1)
+	}
+	input := textinput.New()
+	input.Focus()
+	return model{
+		tasks:    tasks,
+		cursor:   0,
+		state:    "normal",
+		input:    input,
+		err:      nil,
+		newTask:  todo.Task{},
+		quitting: false,
+	}
+}
+
 func (m model) Init() tea.Cmd {
 	return textinput.Blink
 }

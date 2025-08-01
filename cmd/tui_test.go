@@ -5,13 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"todo/td"
+	td "todo/td"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 // Mock Task for testing
-type Task = td.Task // Assuming Task is defined in td/task.go
+type Task = td.Task
 
 // Mock LoadTasks/SaveTasks
 var mockTasks = []Task{
@@ -29,12 +29,9 @@ func mockSaveTasks(tasks []Task) error {
 }
 
 func TestModelInit(t *testing.T) {
+	origLoadTasks := td.LoadTasks
 	td.LoadTasks = mockLoadTasks
-	td.SaveTasks = mockSaveTasks
-	defer func() {
-		td.LoadTasks = td.LoadTasks // Restore original
-		td.SaveTasks = td.SaveTasks
-	}()
+	defer func() { td.LoadTasks = origLoadTasks }()
 
 	m := NewModel()
 	if m.state != "normal" {
@@ -49,11 +46,13 @@ func TestModelInit(t *testing.T) {
 }
 
 func TestUpdateNewTask(t *testing.T) {
+	origLoadTasks := td.LoadTasks
+	origSaveTasks := td.SaveTasks
 	td.LoadTasks = mockLoadTasks
 	td.SaveTasks = mockSaveTasks
 	defer func() {
-		td.LoadTasks = td.LoadTasks
-		td.SaveTasks = td.SaveTasks
+		td.LoadTasks = origLoadTasks
+		td.SaveTasks = origSaveTasks
 	}()
 
 	m := NewModel()
@@ -61,17 +60,19 @@ func TestUpdateNewTask(t *testing.T) {
 	if m.state != "new_task" {
 		t.Errorf("Update('n') state = %q, want %q", m.state, "new_task")
 	}
-	if m.input.Placeholder != "📝 Enter task description:" {
-		t.Errorf("Update('n') placeholder = %q, want %q", m.input.Placeholder, "📝 Enter task description:")
+	if m.input.Placeholder != "➕ New task:" {
+		t.Errorf("Update('n') placeholder = %q, want %q", m.input.Placeholder, "➕ New task:")
 	}
 }
 
 func TestUpdateSetDueDate(t *testing.T) {
+	origLoadTasks := td.LoadTasks
+	origSaveTasks := td.SaveTasks
 	td.LoadTasks = mockLoadTasks
 	td.SaveTasks = mockSaveTasks
 	defer func() {
-		td.LoadTasks = td.LoadTasks
-		td.SaveTasks = td.SaveTasks
+		td.LoadTasks = origLoadTasks
+		td.SaveTasks = origSaveTasks
 	}()
 
 	m := NewModel()
@@ -93,11 +94,13 @@ func TestUpdateSetDueDate(t *testing.T) {
 }
 
 func TestUpdateAddTask(t *testing.T) {
+	origLoadTasks := td.LoadTasks
+	origSaveTasks := td.SaveTasks
 	td.LoadTasks = mockLoadTasks
 	td.SaveTasks = mockSaveTasks
 	defer func() {
-		td.LoadTasks = td.LoadTasks
-		td.SaveTasks = td.SaveTasks
+		td.LoadTasks = origLoadTasks
+		td.SaveTasks = origSaveTasks
 	}()
 
 	m := NewModel()
@@ -106,6 +109,10 @@ func TestUpdateAddTask(t *testing.T) {
 	m.input.SetValue("New task")
 	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m.input.SetValue("today")
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m.input.SetValue("") // Skip priority
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m.input.SetValue("") // Skip tags
 	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if m.state != "normal" {
 		t.Errorf("Update(enter 'today') state = %q, want %q", m.state, "normal")
@@ -120,12 +127,9 @@ func TestUpdateAddTask(t *testing.T) {
 }
 
 func TestView(t *testing.T) {
+	origLoadTasks := td.LoadTasks
 	td.LoadTasks = mockLoadTasks
-	td.SaveTasks = mockSaveTasks
-	defer func() {
-		td.LoadTasks = td.LoadTasks
-		td.SaveTasks = td.SaveTasks
-	}()
+	defer func() { td.LoadTasks = origLoadTasks }()
 
 	m := NewModel()
 	view := m.View()

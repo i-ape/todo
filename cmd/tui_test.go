@@ -5,13 +5,13 @@ import (
 	"testing"
 	"time"
 
-	td "todo/td"
+	todo "todo/td"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 // Mock Task for testing
-type Task = td.Task
+type Task = todo.Task
 
 // Mock LoadTasks/SaveTasks
 var mockTasks = []Task{
@@ -29,16 +29,16 @@ func mockSaveTasks(tasks []Task) error {
 }
 
 func TestModelInit(t *testing.T) {
-	origLoadTasks := td.LoadTasks
-	td.LoadTasks = mockLoadTasks
-	defer func() { td.LoadTasks = origLoadTasks }()
+	origLoadTasks := todo.LoadTasks
+	todo.LoadTasks = mockLoadTasks
+	defer func() { todo.LoadTasks = origLoadTasks }()
 
 	m := NewModel()
 	if m.state != "normal" {
 		t.Errorf("NewModel() state = %q, want %q", m.state, "normal")
 	}
-	if m.input == nil {
-		t.Error("NewModel() input is nil")
+	if !m.input.Focused() {
+		t.Error("NewModel() input is not focused")
 	}
 	if len(m.tasks) != len(mockTasks) {
 		t.Errorf("NewModel() tasks len = %d, want %d", len(m.tasks), len(mockTasks))
@@ -46,14 +46,9 @@ func TestModelInit(t *testing.T) {
 }
 
 func TestUpdateNewTask(t *testing.T) {
-	origLoadTasks := td.LoadTasks
-	origSaveTasks := td.SaveTasks
-	td.LoadTasks = mockLoadTasks
-	td.SaveTasks = mockSaveTasks
-	defer func() {
-		td.LoadTasks = origLoadTasks
-		td.SaveTasks = origSaveTasks
-	}()
+	origLoadTasks := todo.LoadTasks
+	todo.LoadTasks = mockLoadTasks
+	defer func() { todo.LoadTasks = origLoadTasks }()
 
 	m := NewModel()
 	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
@@ -66,13 +61,13 @@ func TestUpdateNewTask(t *testing.T) {
 }
 
 func TestUpdateSetDueDate(t *testing.T) {
-	origLoadTasks := td.LoadTasks
-	origSaveTasks := td.SaveTasks
-	td.LoadTasks = mockLoadTasks
-	td.SaveTasks = mockSaveTasks
+	origLoadTasks := todo.LoadTasks
+	origSaveTasks := todo.SaveTasks
+	todo.LoadTasks = mockLoadTasks
+	todo.SaveTasks = mockSaveTasks
 	defer func() {
-		td.LoadTasks = origLoadTasks
-		td.SaveTasks = origSaveTasks
+		todo.LoadTasks = origLoadTasks
+		todo.SaveTasks = origSaveTasks
 	}()
 
 	m := NewModel()
@@ -94,23 +89,23 @@ func TestUpdateSetDueDate(t *testing.T) {
 }
 
 func TestUpdateAddTask(t *testing.T) {
-	origLoadTasks := td.LoadTasks
-	origSaveTasks := td.SaveTasks
-	td.LoadTasks = mockLoadTasks
-	td.SaveTasks = mockSaveTasks
+	origLoadTasks := todo.LoadTasks
+	origSaveTasks := todo.SaveTasks
+	todo.LoadTasks = mockLoadTasks
+	todo.SaveTasks = mockSaveTasks
 	defer func() {
-		td.LoadTasks = origLoadTasks
-		td.SaveTasks = origSaveTasks
+		todo.LoadTasks = origLoadTasks
+		todo.SaveTasks = origSaveTasks
 	}()
 
 	m := NewModel()
 	mockTasks = []Task{} // Start with empty task list
 	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
 	m.input.SetValue("New task")
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter}) // Enter task name
+	m.input.SetValue("")                            // Skip priority
 	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m.input.SetValue("today")
-	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m.input.SetValue("") // Skip priority
+	m.input.SetValue("today") // Set due date
 	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m.input.SetValue("") // Skip tags
 	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
@@ -127,9 +122,9 @@ func TestUpdateAddTask(t *testing.T) {
 }
 
 func TestView(t *testing.T) {
-	origLoadTasks := td.LoadTasks
-	td.LoadTasks = mockLoadTasks
-	defer func() { td.LoadTasks = origLoadTasks }()
+	origLoadTasks := todo.LoadTasks
+	todo.LoadTasks = mockLoadTasks
+	defer func() { todo.LoadTasks = origLoadTasks }()
 
 	m := NewModel()
 	view := m.View()

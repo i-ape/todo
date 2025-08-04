@@ -1,4 +1,3 @@
-// cmd/tui.go
 package main
 
 import (
@@ -33,13 +32,14 @@ func NewModel() model {
 	input := textinput.New()
 	input.Focus()
 	return model{
-		tasks:    tasks,
-		cursor:   0,
-		state:    "normal",
-		input:    input,
-		err:      nil,
-		newTask:  todo.Task{},
-		quitting: false,
+		tasks:     tasks,
+		cursor:    0,
+		state:     "normal",
+		input:     input,
+		err:       nil,
+		newTask:   todo.Task{},
+		quitting:  false,
+		filterTag: "",
 	}
 }
 
@@ -49,16 +49,27 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	fmt.Fprintf(os.Stderr, "Key pressed: %s\n", msg) // Debug log
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "q":
+			m.quitting = true
+			return m, tea.Quit
+		case "esc":
+			if m.state != "normal" {
+				m.state = "normal"
+				m.input.Reset()
+				m.err = nil
+				return m, nil
+			}
+		}
+	}
+
 	if m.state != "normal" {
 		var cmd tea.Cmd
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
 			switch msg.String() {
-			case "ctrl+c", "q", "esc":
-				m.state = "normal"
-				m.input.Reset()
-				m.err = nil
-				return m, nil
 			case "enter":
 				value := strings.TrimSpace(m.input.Value())
 				switch m.state {
@@ -221,9 +232,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
-			m.quitting = true
-			return m, tea.Quit
 		case "j", "down":
 			if m.cursor < len(m.tasks)-1 {
 				m.cursor++
@@ -352,7 +360,7 @@ func (m model) View() string {
 			taskMap[task.ParentID] = append(taskMap[task.ParentID], task)
 		}
 	}
-	for i, task := range topLevel { // Iterate topLevel instead of m.tasks
+	for i, task := range topLevel {
 		cursor := "  "
 		if i == m.cursor {
 			cursor = "▶ "
@@ -406,12 +414,7 @@ func (m model) View() string {
 }
 
 func StartTUI() {
-	tasks, err := todo.LoadTasks()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load tasks: %v\n", err)
-		os.Exit(1)
-	}
-	p := tea.NewProgram(model{tasks: tasks}, tea.WithAltScreen())
+	p := tea.NewProgram(NewModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
 		os.Exit(1)

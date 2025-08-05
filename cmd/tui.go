@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 	"todo/config"
 	todo "todo/td"
 
@@ -13,14 +14,19 @@ import (
 )
 
 type model struct {
-	tasks     []todo.Task
-	cursor    int
-	quitting  bool
-	err       error
-	state     string          // Tracks TUI state (e.g., "normal", "new_task", "new_priority", "new_due", "new_tags")
-	newTask   todo.Task       // Temporary task being created
-	input     textinput.Model // Current input field
-	filterTag string
+	tasks       []todo.Task
+	cursor      int
+	quitting    bool
+	err         error
+	errTimeout  time.Time       // For auto-clearing errors
+	state       string          // Tracks TUI state (e.g., "normal", "new_task", "new_priority", "new_due", "new_tags")
+	newTask     todo.Task       // Temporary task being created
+	input       textinput.Model // Current input field
+	filterTag   string          // Tag to filter tasks
+	showPending bool            // Show only incomplete tasks
+	showHelp    bool            // Show help screen
+	saveMsg     string          // Temporary save confirmation message
+	saveTimeout time.Time       // For auto-clearing save message
 }
 
 func NewModel() model {
@@ -32,14 +38,17 @@ func NewModel() model {
 	input := textinput.New()
 	input.Focus()
 	return model{
-		tasks:     tasks,
-		cursor:    0,
-		state:     "normal",
-		input:     input,
-		err:       nil,
-		newTask:   todo.Task{},
-		quitting:  false,
-		filterTag: "",
+		tasks:       tasks,
+		cursor:      0,
+		state:       "normal",
+		input:       input,
+		err:         nil,
+		newTask:     todo.Task{},
+		quitting:    false,
+		filterTag:   "",
+		showPending: false,
+		showHelp:    false,
+		saveMsg:     "",
 	}
 }
 
@@ -48,7 +57,30 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	fmt.Fprintf(os.Stderr, "Key pressed: %s\n", msg) // Debug log
+	// Auto-clear error after 3 seconds
+	if !m.errTimeout.IsZero() && time.Now().After(m.errTimeout) {
+		m.err = nil
+		m.errTimeout = time.Time{}
+	}
+	// Auto-clear save message after 2 seconds
+	if m.saveMsg != "" && time.Now().After(m.saveTimeout) {
+		m.saveMsg = ""
+		m.saveTimeout = time.Time{}
+	}
+
+	// Handle help screen toggle
+	if m.showHelp {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "q", "esc", "h":
+				m.showHelp = false
+				return m, nil
+			}
+		}
+		return m, nil
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -61,6 +93,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.Reset()
 				m.err = nil
 				return m, nil
+			}
+		case "h":
+			m.showHelp = !m.showHelp
+			return m, nil
+		case "o": // Toggle showing only pending tasks
+			m.showPending = !m.showPending
+			m.cursor = 0 // Reset cursor when filter changes
+			return m, nil
+		case "f":
+			if m.state == "normal" && !config.DisableFzf {
+				m.state = "filter_tag"
+				m.input = textinput.New()
+				m.input.Placeholder = "🔍 Enter tag to filter (or enter to clear):"
+				m.input.Focus()
+				return m, textinput.Blink
 			}
 		}
 	}
@@ -85,6 +132,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, textinput.Blink
 					}
 					m.err = fmt.Errorf("task name cannot be empty")
+					m.errTimeout = time.Now().Add(3 * time.Second)
 					m.state = "normal"
 					m.input.Reset()
 					return m, nil
@@ -93,6 +141,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if value != "" {
 						if todo.ParsePriority(value) == "" {
 							m.err = fmt.Errorf("invalid priority: %s", value)
+							m.errTimeout = time.Now().Add(3 * time.Second)
 							m.state = "normal"
 							m.input.Reset()
 							return m, nil
@@ -109,6 +158,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						dueDate, err := todo.ParseNaturalDate(value)
 						if err != nil {
 							m.err = err
+							m.errTimeout = time.Now().Add(3 * time.Second)
 							m.state = "normal"
 							m.input.Reset()
 							return m, nil
@@ -126,19 +176,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.tasks = append(m.tasks, m.newTask)
 					if err := todo.SaveTasks(m.tasks); err != nil {
 						m.err = err
+						m.errTimeout = time.Now().Add(3 * time.Second)
 					} else {
-						m.err = nil
+						m.saveMsg = "Task saved successfully"
+						m.saveTimeout = time.Now().Add(2 * time.Second)
 					}
 					m.state = "normal"
 					m.input.Reset()
+					m.cursor = len(m.tasks) - 1 // Move cursor to new task
 					return m, nil
 				case "edit_text":
 					if value != "" {
 						m.tasks[m.cursor].Text = value
 						if err := todo.SaveTasks(m.tasks); err != nil {
 							m.err = err
+							m.errTimeout = time.Now().Add(3 * time.Second)
 						} else {
-							m.err = nil
+							m.saveMsg = "Task updated successfully"
+							m.saveTimeout = time.Now().Add(2 * time.Second)
 						}
 					}
 					m.state = "normal"
@@ -149,6 +204,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						dueDate, err := todo.ParseNaturalDate(value)
 						if err != nil {
 							m.err = err
+							m.errTimeout = time.Now().Add(3 * time.Second)
 							m.state = "normal"
 							m.input.Reset()
 							return m, nil
@@ -156,8 +212,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.tasks[m.cursor].DueDate = dueDate
 						if err := todo.SaveTasks(m.tasks); err != nil {
 							m.err = err
+							m.errTimeout = time.Now().Add(3 * time.Second)
 						} else {
-							m.err = nil
+							m.saveMsg = "Due date updated successfully"
+							m.saveTimeout = time.Now().Add(2 * time.Second)
 						}
 					}
 					m.state = "normal"
@@ -168,8 +226,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.tasks[m.cursor].Tags = todo.ParseTags(value)
 						if err := todo.SaveTasks(m.tasks); err != nil {
 							m.err = err
+							m.errTimeout = time.Now().Add(3 * time.Second)
 						} else {
-							m.err = nil
+							m.saveMsg = "Tags updated successfully"
+							m.saveTimeout = time.Now().Add(2 * time.Second)
 						}
 					}
 					m.state = "normal"
@@ -179,6 +239,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if value != "" {
 						if todo.ParsePriority(value) == "" {
 							m.err = fmt.Errorf("invalid priority: %s", value)
+							m.errTimeout = time.Now().Add(3 * time.Second)
 							m.state = "normal"
 							m.input.Reset()
 							return m, nil
@@ -186,8 +247,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.tasks[m.cursor].Priority = todo.ParsePriority(value)
 						if err := todo.SaveTasks(m.tasks); err != nil {
 							m.err = err
+							m.errTimeout = time.Now().Add(3 * time.Second)
 						} else {
-							m.err = nil
+							m.saveMsg = "Priority updated successfully"
+							m.saveTimeout = time.Now().Add(2 * time.Second)
 						}
 					}
 					m.state = "normal"
@@ -197,8 +260,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if value != "" {
 						m.filterTag = value
 					} else {
-						m.filterTag = "" // Clear filter if empty
+						m.filterTag = "" // Clear filter
 					}
+					m.cursor = 0 // Reset cursor when filter changes
 					m.state = "normal"
 					m.input.Reset()
 					return m, nil
@@ -214,8 +278,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.tasks = append(m.tasks, subtask)
 						if err := todo.SaveTasks(m.tasks); err != nil {
 							m.err = err
+							m.errTimeout = time.Now().Add(3 * time.Second)
 						} else {
-							m.err = nil
+							m.saveMsg = "Subtask added successfully"
+							m.saveTimeout = time.Now().Add(2 * time.Second)
 						}
 					}
 					m.state = "normal"
@@ -233,7 +299,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "j", "down":
-			if m.cursor < len(m.tasks)-1 {
+			if m.cursor < len(m.visibleTasks())-1 {
 				m.cursor++
 			}
 		case "k", "up":
@@ -245,22 +311,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.tasks[m.cursor].Completed = !m.tasks[m.cursor].Completed
 				if err := todo.SaveTasks(m.tasks); err != nil {
 					m.err = err
-					fmt.Fprintf(os.Stderr, "Error saving tasks: %v\n", err)
+					m.errTimeout = time.Now().Add(3 * time.Second)
 				} else {
-					m.err = nil
+					m.saveMsg = "Task updated successfully"
+					m.saveTimeout = time.Now().Add(2 * time.Second)
 				}
 			}
 		case "x", "backspace":
 			if len(m.tasks) > 0 {
 				m.tasks = append(m.tasks[:m.cursor], m.tasks[m.cursor+1:]...)
-				if m.cursor >= len(m.tasks) && m.cursor > 0 {
+				if m.cursor >= len(m.visibleTasks()) && m.cursor > 0 {
 					m.cursor--
 				}
 				if err := todo.SaveTasks(m.tasks); err != nil {
 					m.err = err
-					fmt.Fprintf(os.Stderr, "Error saving tasks: %v\n", err)
+					m.errTimeout = time.Now().Add(3 * time.Second)
 				} else {
-					m.err = nil
+					m.saveMsg = "Task deleted successfully"
+					m.saveTimeout = time.Now().Add(2 * time.Second)
 				}
 			}
 		case "d":
@@ -302,25 +370,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "f":
 			if config.DisableFzf {
 				m.err = fmt.Errorf("fzf is disabled")
-				fmt.Fprintf(os.Stderr, "Error: fzf is disabled\n")
+				m.errTimeout = time.Now().Add(3 * time.Second)
 				return m, nil
 			}
 			selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
 			if err != nil {
 				m.err = err
-				fmt.Fprintf(os.Stderr, "Error selecting task with fzf: %v\n", err)
+				m.errTimeout = time.Now().Add(3 * time.Second)
 				return m, nil
 			}
 			if len(selected) == 0 {
 				m.err = fmt.Errorf("no task selected")
-				fmt.Fprintf(os.Stderr, "No task selected with fzf\n")
+				m.errTimeout = time.Now().Add(3 * time.Second)
 				return m, nil
 			}
 			for i, task := range m.tasks {
 				if task.ID == selected[0].ID {
 					m.cursor = i
 					m.err = nil
-					fmt.Fprintf(os.Stderr, "Selected task ID %d at cursor %d\n", task.ID, i)
 					break
 				}
 			}
@@ -329,87 +396,157 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			todo.SortTasks(m.tasks, config.GetSortOrder())
 			if err := todo.SaveTasks(m.tasks); err != nil {
 				m.err = err
-				fmt.Fprintf(os.Stderr, "Error saving tasks: %v\n", err)
+				m.errTimeout = time.Now().Add(3 * time.Second)
 			} else {
-				m.err = nil
+				m.saveMsg = "Tasks sorted successfully"
+				m.saveTimeout = time.Now().Add(2 * time.Second)
 			}
-		case "c": // Clear error
+			return m, nil
+		case "c":
 			m.err = nil
-			fmt.Fprintf(os.Stderr, "Error cleared\n")
+			m.errTimeout = time.Time{}
 			return m, nil
 		}
 	}
 	return m, nil
 }
 
+// visibleTasks returns tasks filtered by tag and completion status
+func (m model) visibleTasks() []todo.Task {
+	var result []todo.Task
+	for _, task := range m.tasks {
+		if m.showPending && task.Completed {
+			continue
+		}
+		if m.filterTag != "" {
+			hasTag := false
+			for _, tag := range task.Tags {
+				if tag == m.filterTag {
+					hasTag = true
+					break
+				}
+			}
+			if !hasTag {
+				continue
+			}
+		}
+		result = append(result, task)
+	}
+	return result
+}
+
+// helpView renders the help screen
+func (m model) helpView() string {
+	var b strings.Builder
+	b.WriteString(color.CyanString("📋 To-Do List Help\n\n"))
+	b.WriteString("Keybindings:\n")
+	b.WriteString("  ↑/↓ or j/k: Move cursor up/down\n")
+	b.WriteString("  enter or space: Toggle task completion\n")
+	b.WriteString("  x or backspace: Delete task\n")
+	b.WriteString("  n: Add new task\n")
+	b.WriteString("  d: Edit due date\n")
+	b.WriteString("  e: Edit task text\n")
+	b.WriteString("  t: Edit tags\n")
+	b.WriteString("  p: Edit priority\n")
+	b.WriteString("  s: Add subtask\n")
+	b.WriteString("  f: Filter by tag (or fzf select if enabled)\n")
+	b.WriteString("  o: Toggle showing only pending tasks\n")
+	b.WriteString("  r: Sort tasks\n")
+	b.WriteString("  c: Clear error\n")
+	b.WriteString("  h: Show/hide this help\n")
+	b.WriteString("  q or ctrl+c: Quit\n")
+	b.WriteString("  esc: Cancel input (in editing modes)\n\n")
+	b.WriteString("Configuration (Environment Variables):\n")
+	b.WriteString("  TODO_DEFAULT_PRIORITY: Set default priority (high, medium, low; default: medium)\n")
+	b.WriteString("  TODO_DISABLE_FZF: Set to 'true' to disable fzf (default: false)\n")
+	b.WriteString("  TODO_SORT_ORDER: Set sort order (due, priority, text; default: due)\n\n")
+	b.WriteString("Press h, q, or esc to return to tasks")
+	return b.String()
+}
+
 func (m model) View() string {
 	if m.quitting {
 		return "Goodbye 👋\n"
+	}
+	if m.showHelp {
+		return m.helpView()
 	}
 	var b strings.Builder
 	if m.err != nil {
 		b.WriteString(color.RedString("Error: %v\n\n", m.err))
 	}
-	b.WriteString("📋 Tasks:\n\n")
-	taskMap := make(map[int][]todo.Task)
-	topLevel := make([]todo.Task, 0, len(m.tasks)) // Pre-allocate
-	for _, task := range m.tasks {
-		if task.ParentID == 0 {
-			topLevel = append(topLevel, task)
-		} else {
-			taskMap[task.ParentID] = append(taskMap[task.ParentID], task)
-		}
+	if m.saveMsg != "" {
+		b.WriteString(color.GreenString("%s\n\n", m.saveMsg))
 	}
-	for i, task := range topLevel {
-		cursor := "  "
-		if i == m.cursor {
-			cursor = "▶ "
-		}
-		status := color.CyanString("[ ]")
-		if task.Completed {
-			status = color.GreenString("[✓]")
-		} else if task.DueDate != "" && todo.IsOverdue(task.DueDate) {
-			status = color.RedString("[✗]")
-		}
-		label := task.Text
-		if task.DueDate != "" {
-			label += color.YellowString(" 📅 %s", task.DueDate)
-		}
-		if len(task.Tags) > 0 {
-			label += " 🏷️ " + strings.Join(task.Tags, ", ")
-		}
-		switch task.Priority {
-		case "high":
-			label += color.RedString(" 🔥")
-		case "low":
-			label += color.BlueString(" ⬇")
-		}
-		b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, label))
-		// Display subtasks
-		for _, subtask := range taskMap[task.ID] {
-			subStatus := color.CyanString("[ ]")
-			if subtask.Completed {
-				subStatus = color.GreenString("[✓]")
-			} else if subtask.DueDate != "" && todo.IsOverdue(subtask.DueDate) {
-				subStatus = color.RedString("[✗]")
+	if len(m.visibleTasks()) == 0 {
+		b.WriteString("📋 No tasks yet. Press 'n' to add one.\n\n")
+	} else {
+		b.WriteString("📋 Tasks:\n\n")
+		taskMap := make(map[int][]todo.Task)
+		var topLevel []todo.Task
+		for _, task := range m.visibleTasks() {
+			if task.ParentID == 0 {
+				topLevel = append(topLevel, task)
+			} else {
+				taskMap[task.ParentID] = append(taskMap[task.ParentID], task)
 			}
-			subLabel := subtask.Text
-			if subtask.DueDate != "" {
-				subLabel += color.YellowString(" 📅 %s", subtask.DueDate)
+		}
+		for i, task := range topLevel {
+			cursor := "  "
+			if i == m.cursor {
+				cursor = "▶ "
 			}
-			if len(subtask.Tags) > 0 {
-				subLabel += " 🏷️ " + strings.Join(subtask.Tags, ", ")
+			status := color.CyanString("[ ]")
+			if task.Completed {
+				status = color.GreenString("[✓]")
+			} else if task.DueDate != "" && todo.IsOverdue(task.DueDate) {
+				status = color.RedString("[✗]")
 			}
-			switch subtask.Priority {
+			label := task.Text
+			if task.DueDate != "" {
+				label += color.YellowString(" 📅 %s", task.DueDate)
+			}
+			if len(task.Tags) > 0 {
+				label += " 🏷️ " + strings.Join(task.Tags, ", ")
+			}
+			switch task.Priority {
 			case "high":
-				subLabel += color.RedString(" 🔥")
+				label += color.RedString(" 🔥")
 			case "low":
-				subLabel += color.BlueString(" ⬇")
+				label += color.BlueString(" ⬇")
 			}
-			b.WriteString(fmt.Sprintf("    ↳ %s %s\n", subStatus, subLabel))
+			b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, label))
+			for _, subtask := range taskMap[task.ID] {
+				subStatus := color.CyanString("[ ]")
+				if subtask.Completed {
+					subStatus = color.GreenString("[✓]")
+				} else if subtask.DueDate != "" && todo.IsOverdue(subtask.DueDate) {
+					subStatus = color.RedString("[✗]")
+				}
+				subLabel := subtask.Text
+				if subtask.DueDate != "" {
+					subLabel += color.YellowString(" 📅 %s", subtask.DueDate)
+				}
+				if len(subtask.Tags) > 0 {
+					subLabel += " 🏷️ " + strings.Join(subtask.Tags, ", ")
+				}
+				switch subtask.Priority {
+				case "high":
+					subLabel += color.RedString(" 🔥")
+				case "low":
+					subLabel += color.BlueString(" ⬇")
+				}
+				b.WriteString(fmt.Sprintf("    ↳ %s %s\n", subStatus, subLabel))
+			}
 		}
 	}
-	b.WriteString("\n↑/↓ or j/k: navigate, [enter]: toggle, [x]: delete, [n]: new, [d]: due date, [e]: edit, [t]: tags, [p]: priority, [s]: subtask, [f]: fzf select, [r]: sort, [q]: quit\n")
+	if m.filterTag != "" {
+		b.WriteString(fmt.Sprintf("\nFiltered by tag: %s\n", m.filterTag))
+	}
+	if m.showPending {
+		b.WriteString("Showing only pending tasks\n")
+	}
+	b.WriteString("\n↑/↓ or j/k: navigate, [enter]: toggle, [x]: delete, [n]: new, [d]: due date, [e]: edit, [t]: tags, [p]: priority, [s]: subtask, [f]: filter/fzf, [o]: toggle pending, [r]: sort, [h]: help, [q]: quit\n")
 	return b.String()
 }
 

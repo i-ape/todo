@@ -97,6 +97,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "h":
 			m.showHelp = !m.showHelp
 			return m, nil
+		case "i":
+			if len(m.tasks) > 0 {
+				m.tasks[m.cursor].Important = !m.tasks[m.cursor].Important
+				if err := todo.SaveTasks(m.tasks); err != nil {
+					m.err = err
+					m.errTimeout = time.Now().Add(3 * time.Second)
+				} else {
+					m.saveMsg = "Task importance toggled"
+					m.saveTimeout = time.Now().Add(2 * time.Second)
+				}
+			}
 		case "o": // Toggle showing only pending tasks
 			m.showPending = !m.showPending
 			m.cursor = 0 // Reset cursor when filter changes

@@ -27,6 +27,8 @@ type model struct {
 	showHelp    bool            // Show help screen
 	saveMsg     string          // Temporary save confirmation message
 	saveTimeout time.Time       // For auto-clearing save message
+	viewMode    string          // "normal" or "sticky"
+
 }
 
 func NewModel() model {
@@ -49,7 +51,7 @@ func NewModel() model {
 		showPending: false,
 		showHelp:    false,
 		saveMsg:     "",
-	}
+		viewMode:    "normal", // sticky
 }
 
 func (m model) Init() tea.Cmd {

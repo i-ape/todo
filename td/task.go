@@ -22,6 +22,8 @@ type Task struct {
 	Notes     string   `json:"notes,omitempty"`
 	ParentID  int      `json:"parent_id,omitempty"`
 	Category  string   `json:"category,omitempty"`
+	Sticky    bool     `json:"sticky"`
+	Important bool     `json:"important"`
 }
 
 // AddTaskWithDueDate adds a task with an optional due date

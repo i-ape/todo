@@ -52,6 +52,7 @@ func NewModel() model {
 		showHelp:    false,
 		saveMsg:     "",
 		viewMode:    "normal", // sticky
+	}
 }
 
 func (m model) Init() tea.Cmd {
@@ -96,6 +97,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.err = nil
 				return m, nil
 			}
+		case "v":
+			// Toggle between normal and sticky view modes
+			if m.viewMode == "normal" {
+				m.viewMode = "sticky"
+			} else {
+				m.viewMode = "normal"
+			}
+			m.cursor = 0 // Reset cursor to avoid out-of-bounds errors
+			return m, nil
+		case "m":
+			// Toggle the sticky status of the selected task
+			if len(m.tasks) > 0 {
+				m.tasks[m.cursor].Sticky = !m.tasks[m.cursor].Sticky
+			}
+			return m, nil
 		case "h":
 			m.showHelp = !m.showHelp
 			return m, nil
@@ -428,6 +444,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) visibleTasks() []todo.Task {
 	var result []todo.Task
 	for _, task := range m.tasks {
+		if m.viewMode == "sticky" && !task.Sticky {
+			continue
+		}
 		if m.showPending && task.Completed {
 			continue
 		}
@@ -446,6 +465,131 @@ func (m model) visibleTasks() []todo.Task {
 		result = append(result, task)
 	}
 	return result
+}
+
+func (m model) View() string {
+	if m.quitting {
+		return "Goodbye 👋\n"
+	}
+	if m.showHelp {
+		return m.helpView()
+	}
+	var b strings.Builder
+	if m.err != nil {
+		b.WriteString(color.RedString("Error: %v\n\n", m.err))
+	}
+	if m.saveMsg != "" {
+		b.WriteString(color.GreenString("%s\n\n", m.saveMsg))
+	}
+	if m.viewMode == "sticky" && len(m.visibleTasks()) == 0 {
+		b.WriteString("📌 No sticky tasks. Press 'm' to mark a task as sticky.\n\n")
+	} else if len(m.visibleTasks()) == 0 {
+		b.WriteString("📋 No tasks yet. Press 'n' to add one.\n\n")
+	} else {
+		b.WriteString("📋 Tasks:\n\n")
+		taskMap := make(map[int][]todo.Task)
+		var topLevel []todo.Task
+		for _, task := range m.visibleTasks() {
+			if task.ParentID == 0 {
+				topLevel = append(topLevel, task)
+			} else {
+				taskMap[task.ParentID] = append(taskMap[task.ParentID], task)
+			}
+		}
+		for i, task := range topLevel {
+			cursor := "  "
+			if i == m.cursor {
+				cursor = "▶ "
+			}
+			status := color.CyanString("[ ]")
+			if task.Completed {
+				status = color.GreenString("[✓]")
+			} else if task.DueDate != "" && todo.IsOverdue(task.DueDate) {
+				status = color.RedString("[✗]")
+			}
+			label := task.Text
+			if task.Sticky {
+				label = "📌 " + label
+			}
+			if task.DueDate != "" {
+				label += color.YellowString(" 📅 %s", task.DueDate)
+			}
+			if len(task.Tags) > 0 {
+				label += " 🏷️ " + strings.Join(task.Tags, ", ")
+			}
+			switch task.Priority {
+			case "high":
+				label += color.RedString(" 🔥")
+			case "low":
+				label += color.BlueString(" ⬇")
+			}
+			b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, label))
+			for _, subtask := range taskMap[task.ID] {
+				subStatus := color.CyanString("[ ]")
+				if subtask.Completed {
+					subStatus = color.GreenString("[✓]")
+				} else if subtask.DueDate != "" && todo.IsOverdue(subtask.DueDate) {
+					subStatus = color.RedString("[✗]")
+				}
+				subLabel := subtask.Text
+				if subtask.Sticky {
+					subLabel = "📌 " + subLabel
+				}
+				if subtask.DueDate != "" {
+					subLabel += color.YellowString(" 📅 %s", subtask.DueDate)
+				}
+				if len(subtask.Tags) > 0 {
+					subLabel += " 🏷️ " + strings.Join(subtask.Tags, ", ")
+				}
+				switch subtask.Priority {
+				case "high":
+					subLabel += color.RedString(" 🔥")
+				case "low":
+					subLabel += color.BlueString(" ⬇")
+				}
+				b.WriteString(fmt.Sprintf("    ↳ %s %s\n", subStatus, subLabel))
+			}
+		}
+	}
+	if m.filterTag != "" {
+		b.WriteString(fmt.Sprintf("\nFiltered by tag: %s\n", m.filterTag))
+	}
+	if m.showPending {
+		b.WriteString("Showing only pending tasks\n")
+	}
+	b.WriteString("\n↑/↓ or j/k: navigate, [enter]: toggle, [x]: delete, [n]: new, [d]: due date, [e]: edit, [t]: tags, [p]: priority, [s]: subtask, [f]: filter/fzf, [o]: toggle pending, [r]: sort, [h]: help, [m]: toggle sticky, [v]: sticky view, [q]: quit\n")
+	return b.String()
+}
+
+// / helper function for rendering a task
+func renderTask(task todo.Task, isSelected bool) string {
+	cursor := "  "
+	if isSelected {
+		cursor = "▶ "
+	}
+	status := color.CyanString("[ ]")
+	if task.Completed {
+		status = color.GreenString("[✓]")
+	} else if task.DueDate != "" && todo.IsOverdue(task.DueDate) {
+		status = color.RedString("[✗]")
+	}
+	label := task.Text
+	if task.Sticky {
+		label = "📌 " + label
+	}
+	if task.DueDate != "" {
+		label += color.YellowString(" 📅 %s", task.DueDate)
+	}
+	if len(task.Tags) > 0 {
+		label += " 🏷️ " + strings.Join(task.Tags, ", ")
+	}
+	switch task.Priority {
+	case "high":
+		label += color.RedString(" 🔥")
+	case "low":
+		label += color.BlueString(" ⬇")
+	}
+	return fmt.Sprintf("%s %s %s", cursor, status, label)
 }
 
 // helpView renders the help screen
@@ -474,95 +618,11 @@ func (m model) helpView() string {
 	b.WriteString("  TODO_DISABLE_FZF: Set to 'true' to disable fzf (default: false)\n")
 	b.WriteString("  TODO_SORT_ORDER: Set sort order (due, priority, text; default: due)\n\n")
 	b.WriteString("Press h, q, or esc to return to tasks")
+	b.WriteString("  i: Toggle task importance\n")
 	return b.String()
 }
 
-func (m model) View() string {
-	if m.quitting {
-		return "Goodbye 👋\n"
-	}
-	if m.showHelp {
-		return m.helpView()
-	}
-	var b strings.Builder
-	if m.err != nil {
-		b.WriteString(color.RedString("Error: %v\n\n", m.err))
-	}
-	if m.saveMsg != "" {
-		b.WriteString(color.GreenString("%s\n\n", m.saveMsg))
-	}
-	if len(m.visibleTasks()) == 0 {
-		b.WriteString("📋 No tasks yet. Press 'n' to add one.\n\n")
-	} else {
-		b.WriteString("📋 Tasks:\n\n")
-		taskMap := make(map[int][]todo.Task)
-		var topLevel []todo.Task
-		for _, task := range m.visibleTasks() {
-			if task.ParentID == 0 {
-				topLevel = append(topLevel, task)
-			} else {
-				taskMap[task.ParentID] = append(taskMap[task.ParentID], task)
-			}
-		}
-		for i, task := range topLevel {
-			cursor := "  "
-			if i == m.cursor {
-				cursor = "▶ "
-			}
-			status := color.CyanString("[ ]")
-			if task.Completed {
-				status = color.GreenString("[✓]")
-			} else if task.DueDate != "" && todo.IsOverdue(task.DueDate) {
-				status = color.RedString("[✗]")
-			}
-			label := task.Text
-			if task.DueDate != "" {
-				label += color.YellowString(" 📅 %s", task.DueDate)
-			}
-			if len(task.Tags) > 0 {
-				label += " 🏷️ " + strings.Join(task.Tags, ", ")
-			}
-			switch task.Priority {
-			case "high":
-				label += color.RedString(" 🔥")
-			case "low":
-				label += color.BlueString(" ⬇")
-			}
-			b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, label))
-			for _, subtask := range taskMap[task.ID] {
-				subStatus := color.CyanString("[ ]")
-				if subtask.Completed {
-					subStatus = color.GreenString("[✓]")
-				} else if subtask.DueDate != "" && todo.IsOverdue(subtask.DueDate) {
-					subStatus = color.RedString("[✗]")
-				}
-				subLabel := subtask.Text
-				if subtask.DueDate != "" {
-					subLabel += color.YellowString(" 📅 %s", subtask.DueDate)
-				}
-				if len(subtask.Tags) > 0 {
-					subLabel += " 🏷️ " + strings.Join(subtask.Tags, ", ")
-				}
-				switch subtask.Priority {
-				case "high":
-					subLabel += color.RedString(" 🔥")
-				case "low":
-					subLabel += color.BlueString(" ⬇")
-				}
-				b.WriteString(fmt.Sprintf("    ↳ %s %s\n", subStatus, subLabel))
-			}
-		}
-	}
-	if m.filterTag != "" {
-		b.WriteString(fmt.Sprintf("\nFiltered by tag: %s\n", m.filterTag))
-	}
-	if m.showPending {
-		b.WriteString("Showing only pending tasks\n")
-	}
-	b.WriteString("\n↑/↓ or j/k: navigate, [enter]: toggle, [x]: delete, [n]: new, [d]: due date, [e]: edit, [t]: tags, [p]: priority, [s]: subtask, [f]: filter/fzf, [o]: toggle pending, [r]: sort, [h]: help, [q]: quit\n")
-	return b.String()
-}
-
+// it starts the TUI
 func StartTUI() {
 	p := tea.NewProgram(NewModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {

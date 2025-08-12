@@ -3,6 +3,7 @@ package todo
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"todo/config"
 )
@@ -26,4 +27,17 @@ func SaveTasks(tasks []Task) error {
 		return err
 	}
 	return os.WriteFile(config.GetTaskFilePath(), data, 0644)
+}
+
+func GetTaskByID(id int) (*Task, error) {
+	tasks, err := LoadTasks()
+	if err != nil {
+		return nil, err
+	}
+	for _, task := range tasks {
+		if task.ID == id {
+			return &task, nil
+		}
+	}
+	return nil, fmt.Errorf("task with ID %d not found", id)
 }

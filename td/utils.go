@@ -168,30 +168,28 @@ func PromptMultiline(prompt, initial string) string {
 	return strings.TrimSpace(string(data))
 }
 
+// PrintTaskDetails prints a detailed view of a single task.
 func PrintTaskDetails(task Task) {
-	fmt.Printf("📝 Task #%d: %s\n", task.ID, task.Text)
-	if task.Completed {
-		fmt.Println("Status: ✅ Completed")
-	} else {
-		fmt.Println("Status: ☐ Incomplete")
-	}
+	fmt.Printf("🆔 ID: %d\n", task.ID)
+	fmt.Printf("📝 Text: %s\n", task.Text)
 	if task.DueDate != "" {
-		fmt.Println("Due:", task.DueDate)
-	}
-	if len(task.Tags) > 0 {
-		fmt.Println("Tags:", strings.Join(task.Tags, ", "))
+		fmt.Printf("📅 Due: %s\n", task.DueDate)
 	}
 	if task.Priority != "" {
-		fmt.Println("Priority:", task.Priority)
+		fmt.Printf("🔥 Priority: %s\n", task.Priority)
+	}
+	if len(task.Tags) > 0 {
+		fmt.Printf("🏷️ Tags: %s\n", strings.Join(task.Tags, ", "))
 	}
 	if task.Recurring != "" {
-		fmt.Println("Repeats:", task.Recurring)
+		fmt.Printf("🔁 Recurring: %s\n", task.Recurring)
 	}
 	if task.Notes != "" {
-		fmt.Println("Notes:\n" + task.Notes)
+		fmt.Printf("📝 Notes: %s\n", task.Notes)
 	}
+	fmt.Printf("✅ Completed: %v\n", task.Completed)
 	if task.ParentID > 0 {
-		fmt.Printf("Subtask of: #%d\n", task.ParentID)
+		fmt.Printf("📌 Parent ID: %d\n", task.ParentID)
 	}
 }
 

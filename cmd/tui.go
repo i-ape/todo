@@ -561,37 +561,6 @@ func (m model) View() string {
 	return b.String()
 }
 
-// / helper function for rendering a task
-func renderTask(task todo.Task, isSelected bool) string {
-	cursor := "  "
-	if isSelected {
-		cursor = "▶ "
-	}
-	status := color.CyanString("[ ]")
-	if task.Completed {
-		status = color.GreenString("[✓]")
-	} else if task.DueDate != "" && todo.IsOverdue(task.DueDate) {
-		status = color.RedString("[✗]")
-	}
-	label := task.Text
-	if task.Sticky {
-		label = "📌 " + label
-	}
-	if task.DueDate != "" {
-		label += color.YellowString(" 📅 %s", task.DueDate)
-	}
-	if len(task.Tags) > 0 {
-		label += " 🏷️ " + strings.Join(task.Tags, ", ")
-	}
-	switch task.Priority {
-	case "high":
-		label += color.RedString(" 🔥")
-	case "low":
-		label += color.BlueString(" ⬇")
-	}
-	return fmt.Sprintf("%s %s %s", cursor, status, label)
-}
-
 // helpView renders the help screen
 func (m model) helpView() string {
 	var b strings.Builder

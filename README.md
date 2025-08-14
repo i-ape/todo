@@ -1,4 +1,4 @@
-## 📝 Go ToDo List
+# 📝 Go ToDo List
 
 ## 📌 Project Overview
 
@@ -34,6 +34,7 @@ It covers:
 go build -o todo
 chmod +x todo
 ./todo list
+```bash
 
 ## 📂 Project Structure
 

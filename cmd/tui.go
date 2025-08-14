@@ -28,6 +28,7 @@ type model struct {
 	saveMsg     string          // Temporary save confirmation message
 	saveTimeout time.Time       // For auto-clearing save message
 	viewMode    string          // "normal" or "sticky"
+	Notes       string          // Add this field
 
 }
 
@@ -126,6 +127,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.saveTimeout = time.Now().Add(2 * time.Second)
 				}
 			}
+			return m, nil
 		case "o": // Toggle showing only pending tasks
 			m.showPending = !m.showPending
 			m.cursor = 0 // Reset cursor when filter changes
@@ -135,6 +137,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = "filter_tag"
 				m.input = textinput.New()
 				m.input.Placeholder = "🔍 Enter tag to filter (or enter to clear):"
+				m.input.Focus()
+				return m, textinput.Blink
+			}
+		case "N": // Edit or add notes
+			if len(m.tasks) > 0 {
+				m.state = "edit_note"
+				m.input = textinput.New()
+				m.input.Placeholder = "📝 Enter note for task:"
+				m.input.Focus()
+				return m, textinput.Blink
+			}
+		case "M": // Move task up/down
+			if len(m.tasks) > 0 {
+				m.state = "move_task"
+				m.input = textinput.New()
+				m.input.Placeholder = "⬆/⬇ Enter 'u' to move up, 'd' to move down:"
 				m.input.Focus()
 				return m, textinput.Blink
 			}
@@ -279,6 +297,43 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							m.errTimeout = time.Now().Add(3 * time.Second)
 						} else {
 							m.saveMsg = "Priority updated successfully"
+							m.saveTimeout = time.Now().Add(2 * time.Second)
+						}
+					}
+					m.state = "normal"
+					m.input.Reset()
+					return m, nil
+				case "edit_note":
+					if value != "" {
+						m.tasks[m.cursor].Notes = value
+						if err := todo.SaveTasks(m.tasks); err != nil {
+							m.err = err
+							m.errTimeout = time.Now().Add(3 * time.Second)
+						} else {
+							m.saveMsg = "Note updated successfully"
+							m.saveTimeout = time.Now().Add(2 * time.Second)
+						}
+					}
+					m.state = "normal"
+					m.input.Reset()
+					return m, nil
+				case "move_task":
+					if value == "u" && m.cursor > 0 {
+						m.tasks[m.cursor], m.tasks[m.cursor-1] = m.tasks[m.cursor-1], m.tasks[m.cursor]
+						m.cursor--
+					} else if value == "d" && m.cursor < len(m.visibleTasks())-1 {
+						m.tasks[m.cursor], m.tasks[m.cursor+1] = m.tasks[m.cursor+1], m.tasks[m.cursor]
+						m.cursor++
+					} else if value != "" {
+						m.err = fmt.Errorf("invalid move direction: %s", value)
+						m.errTimeout = time.Now().Add(3 * time.Second)
+					}
+					if value == "u" || value == "d" {
+						if err := todo.SaveTasks(m.tasks); err != nil {
+							m.err = err
+							m.errTimeout = time.Now().Add(3 * time.Second)
+						} else {
+							m.saveMsg = "Task moved successfully"
 							m.saveTimeout = time.Now().Add(2 * time.Second)
 						}
 					}

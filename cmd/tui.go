@@ -579,6 +579,9 @@ func (m model) View() string {
 				label += color.BlueString(" ⬇")
 			}
 			b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, label))
+			if task.Notes != "" {
+				b.WriteString(fmt.Sprintf("      📝 %s\n", task.Notes))
+			}
 			for _, subtask := range taskMap[task.ID] {
 				subStatus := color.CyanString("[ ]")
 				if subtask.Completed {
@@ -603,6 +606,9 @@ func (m model) View() string {
 					subLabel += color.BlueString(" ⬇")
 				}
 				b.WriteString(fmt.Sprintf("    ↳ %s %s\n", subStatus, subLabel))
+				if subtask.Notes != "" {
+					b.WriteString(fmt.Sprintf("        📝 %s\n", subtask.Notes))
+				}
 			}
 		}
 	}
@@ -612,7 +618,7 @@ func (m model) View() string {
 	if m.showPending {
 		b.WriteString("Showing only pending tasks\n")
 	}
-	b.WriteString("\n↑/↓ or j/k: navigate, [enter]: toggle, [x]: delete, [n]: new, [d]: due date, [e]: edit, [t]: tags, [p]: priority, [s]: subtask, [f]: filter/fzf, [o]: toggle pending, [r]: sort, [h]: help, [m]: toggle sticky, [v]: sticky view, [q]: quit\n")
+	b.WriteString("\n↑/↓ or j/k: navigate, [enter]: toggle, [x]: delete, [n]: new, [d]: due date, [e]: edit, [t]: tags, [p]: priority, [s]: subtask, [f]: filter/fzf, [o]: toggle pending, [r]: sort, [h]: help, [m]: toggle sticky, [v]: sticky view, [N]: note, [M]: move, [q]: quit\n")
 	return b.String()
 }
 

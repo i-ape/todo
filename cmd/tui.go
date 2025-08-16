@@ -641,6 +641,11 @@ func (m model) helpView() string {
 	b.WriteString("  r: Sort tasks\n")
 	b.WriteString("  c: Clear error\n")
 	b.WriteString("  h: Show/hide this help\n")
+	b.WriteString("  i: Toggle task importance\n")
+	b.WriteString("  m: Toggle sticky status\n")
+	b.WriteString("  v: Toggle sticky view\n")
+	b.WriteString("  N: Add/edit task note\n")
+	b.WriteString("  M: Move task up/down\n")
 	b.WriteString("  q or ctrl+c: Quit\n")
 	b.WriteString("  esc: Cancel input (in editing modes)\n\n")
 	b.WriteString("Configuration (Environment Variables):\n")
@@ -648,7 +653,6 @@ func (m model) helpView() string {
 	b.WriteString("  TODO_DISABLE_FZF: Set to 'true' to disable fzf (default: false)\n")
 	b.WriteString("  TODO_SORT_ORDER: Set sort order (due, priority, text; default: due)\n\n")
 	b.WriteString("Press h, q, or esc to return to tasks")
-	b.WriteString("  i: Toggle task importance\n")
 	return b.String()
 }
 

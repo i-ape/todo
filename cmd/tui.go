@@ -28,15 +28,14 @@ type model struct {
 	saveMsg     string          // Temporary save confirmation message
 	saveTimeout time.Time       // For auto-clearing save message
 	viewMode    string          // "normal" or "sticky"
-	Notes       string          // Add this field
-
 }
 
 func NewModel() model {
 	tasks, err := todo.LoadTasks()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load tasks: %v\n", err)
-		os.Exit(1)
+		// Fallback to empty list instead of exiting
+		tasks = []todo.Task{}
 	}
 	input := textinput.New()
 	input.Focus()
@@ -52,7 +51,7 @@ func NewModel() model {
 		showPending: false,
 		showHelp:    false,
 		saveMsg:     "",
-		viewMode:    "normal", // sticky
+		viewMode:    "normal",
 	}
 }
 
@@ -145,16 +144,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = "edit_note"
 				m.input = textinput.New()
 				m.input.Placeholder = "📝 Enter note for task:"
+				m.input.SetValue(m.tasks[m.cursor].Notes) // Pre-fill existing note
 				m.input.Focus()
 				return m, textinput.Blink
 			}
 		case "M": // Move task up/down
-			if len(m.tasks) > 0 {
+			if len(m.tasks) > 0 && m.filterTag == "" && !m.showPending && m.viewMode == "normal" {
 				m.state = "move_task"
 				m.input = textinput.New()
 				m.input.Placeholder = "⬆/⬇ Enter 'u' to move up, 'd' to move down:"
 				m.input.Focus()
 				return m, textinput.Blink
+			} else if len(m.tasks) > 0 {
+				m.err = fmt.Errorf("Move is disabled in filtered views")
+				m.errTimeout = time.Now().Add(3 * time.Second)
+				return m, nil
 			}
 		}
 	}
@@ -304,15 +308,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.input.Reset()
 					return m, nil
 				case "edit_note":
-					if value != "" {
-						m.tasks[m.cursor].Notes = value
-						if err := todo.SaveTasks(m.tasks); err != nil {
-							m.err = err
-							m.errTimeout = time.Now().Add(3 * time.Second)
-						} else {
-							m.saveMsg = "Note updated successfully"
-							m.saveTimeout = time.Now().Add(2 * time.Second)
-						}
+					m.tasks[m.cursor].Notes = value // Allow empty to clear note
+					if err := todo.SaveTasks(m.tasks); err != nil {
+						m.err = err
+						m.errTimeout = time.Now().Add(3 * time.Second)
+					} else {
+						m.saveMsg = "Note updated successfully"
+						m.saveTimeout = time.Now().Add(2 * time.Second)
 					}
 					m.state = "normal"
 					m.input.Reset()
@@ -321,7 +323,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if value == "u" && m.cursor > 0 {
 						m.tasks[m.cursor], m.tasks[m.cursor-1] = m.tasks[m.cursor-1], m.tasks[m.cursor]
 						m.cursor--
-					} else if value == "d" && m.cursor < len(m.visibleTasks())-1 {
+					} else if value == "d" && m.cursor < len(m.visibleTopLevelTasks())-1 {
 						m.tasks[m.cursor], m.tasks[m.cursor+1] = m.tasks[m.cursor+1], m.tasks[m.cursor]
 						m.cursor++
 					} else if value != "" {
@@ -383,7 +385,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "j", "down":
-			if m.cursor < len(m.visibleTasks())-1 {
+			if m.cursor < len(m.visibleTopLevelTasks())-1 {
 				m.cursor++
 			}
 		case "k", "up":
@@ -391,40 +393,76 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor--
 			}
 		case " ", "enter":
-			if len(m.tasks) > 0 {
-				m.tasks[m.cursor].Completed = !m.tasks[m.cursor].Completed
-				if err := todo.SaveTasks(m.tasks); err != nil {
-					m.err = err
-					m.errTimeout = time.Now().Add(3 * time.Second)
-				} else {
-					m.saveMsg = "Task updated successfully"
-					m.saveTimeout = time.Now().Add(2 * time.Second)
+			topLevel := m.visibleTopLevelTasks()
+			if len(topLevel) == 0 || m.cursor >= len(topLevel) {
+				return m, nil
+			}
+			selectedTask := topLevel[m.cursor]
+			for i, t := range m.tasks {
+				if t.ID == selectedTask.ID {
+					m.tasks[i].Completed = !m.tasks[i].Completed
+					if m.tasks[i].Completed && m.tasks[i].Recurring != "" {
+						newTask := m.tasks[i]
+						newTask.ID = todo.NextTaskID(m.tasks)
+						newTask.Completed = false
+						newTask.DueDate = todo.CalculateNextDueDate(newTask.DueDate, newTask.Recurring) // Assume implemented in due.go
+						m.tasks = append(m.tasks, newTask)
+					}
+					break
 				}
 			}
+			if err := todo.SaveTasks(m.tasks); err != nil {
+				m.err = err
+				m.errTimeout = time.Now().Add(3 * time.Second)
+			} else {
+				m.saveMsg = "Task updated successfully"
+				m.saveTimeout = time.Now().Add(2 * time.Second)
+			}
+			return m, nil
 		case "x", "backspace":
-			if len(m.tasks) > 0 {
-				m.tasks = append(m.tasks[:m.cursor], m.tasks[m.cursor+1:]...)
-				if m.cursor >= len(m.visibleTasks()) && m.cursor > 0 {
-					m.cursor--
-				}
-				if err := todo.SaveTasks(m.tasks); err != nil {
-					m.err = err
-					m.errTimeout = time.Now().Add(3 * time.Second)
-				} else {
-					m.saveMsg = "Task deleted successfully"
-					m.saveTimeout = time.Now().Add(2 * time.Second)
+			topLevel := m.visibleTopLevelTasks()
+			if len(topLevel) == 0 || m.cursor >= len(topLevel) {
+				return m, nil
+			}
+			selectedTask := topLevel[m.cursor]
+			for i, t := range m.tasks {
+				if t.ID == selectedTask.ID {
+					deletedID := m.tasks[i].ID
+					m.tasks = append(m.tasks[:i], m.tasks[i+1:]...)
+					// Remove subtasks
+					newTasks := []todo.Task{}
+					for _, task := range m.tasks {
+						if task.ParentID != deletedID {
+							newTasks = append(newTasks, task)
+						}
+					}
+					m.tasks = newTasks
+					break
 				}
 			}
+			if m.cursor >= len(m.visibleTasks()) && m.cursor > 0 {
+				m.cursor--
+			}
+			if err := todo.SaveTasks(m.tasks); err != nil {
+				m.err = err
+				m.errTimeout = time.Now().Add(3 * time.Second)
+			} else {
+				m.saveMsg = "Task and subtasks deleted successfully"
+				m.saveTimeout = time.Now().Add(2 * time.Second)
+			}
+			return m, nil
 		case "d":
 			m.state = "edit_due"
 			m.input = textinput.New()
 			m.input.Placeholder = "📅 Enter new due date (e.g., today, 2025-12-31):"
+			m.input.SetValue(m.tasks[m.cursor].DueDate) // Pre-fill
 			m.input.Focus()
 			return m, textinput.Blink
 		case "e":
 			m.state = "edit_text"
 			m.input = textinput.New()
 			m.input.Placeholder = "✏️ Edit task text:"
+			m.input.SetValue(m.tasks[m.cursor].Text) // Pre-fill
 			m.input.Focus()
 			return m, textinput.Blink
 		case "n":
@@ -437,12 +475,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.state = "edit_tags"
 			m.input = textinput.New()
 			m.input.Placeholder = "🏷️ Enter tags (comma-separated):"
+			m.input.SetValue(strings.Join(m.tasks[m.cursor].Tags, ", ")) // Pre-fill
 			m.input.Focus()
 			return m, textinput.Blink
 		case "p":
 			m.state = "edit_priority"
 			m.input = textinput.New()
 			m.input.Placeholder = "🔥 Enter priority (high, medium, low):"
+			m.input.SetValue(m.tasks[m.cursor].Priority) // Pre-fill
 			m.input.Focus()
 			return m, textinput.Blink
 		case "s":
@@ -518,6 +558,17 @@ func (m model) visibleTasks() []todo.Task {
 			}
 		}
 		result = append(result, task)
+	}
+	return result
+}
+
+// visibleTopLevelTasks returns only top-level tasks from visibleTasks
+func (m model) visibleTopLevelTasks() []todo.Task {
+	var result []todo.Task
+	for _, task := range m.visibleTasks() {
+		if task.ParentID == 0 {
+			result = append(result, task)
+		}
 	}
 	return result
 }

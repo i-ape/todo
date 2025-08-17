@@ -243,7 +243,8 @@ func endOfMonth(t time.Time) string {
 }
 
 // nextWeekday returns the next occurrence of the specified weekday.
-func nextWeekday(wd time.Weekday) func(time.Time) string {
+func nextWeekday(wd time.Weekday) func(time.Time) string { // CalculateNextDueDate computes the next due date based on the recurrence rule.
+
 	return func(t time.Time) string {
 		offset := (int(wd) - int(t.Weekday()) + 7) % 7
 		if offset == 0 {
@@ -274,4 +275,67 @@ func startOfNextMonth(t time.Time) string {
 func endOfNextMonth(t time.Time) string {
 	next := t.AddDate(0, 2, 0)
 	return time.Date(next.Year(), next.Month(), 0, 0, 0, 0, 0, t.Location()).Format("2006-01-02")
+}
+
+// CalculateNextDueDate computes the next due date based on the recurrence rule.
+func CalculateNextDueDate(currentDueDate, recurring string) string {
+	if recurring == "" {
+		return "" // No recurrence
+	}
+
+	now := time.Now().Local()
+	currentDue, err := time.ParseInLocation("2006-01-02", currentDueDate, time.Local)
+	if err != nil {
+		currentDue = now // Fallback if invalid
+	}
+
+	recurring = strings.ToLower(strings.TrimSpace(recurring))
+	if !strings.HasPrefix(recurring, "every ") {
+		return "" // Invalid format
+	}
+	rule := strings.TrimPrefix(recurring, "every ")
+
+	switch {
+	case rule == "day" || rule == "daily":
+		return currentDue.AddDate(0, 0, 1).Format("2006-01-02")
+	case rule == "week" || rule == "weekly":
+		return currentDue.AddDate(0, 0, 7).Format("2006-01-02")
+	case rule == "month" || rule == "monthly":
+		return currentDue.AddDate(0, 1, 0).Format("2006-01-02")
+	case strings.Contains(rule, ","): // e.g., "mon,wed,fri"
+		weekdays := strings.Split(rule, ",")
+		var next time.Time = currentDue.AddDate(0, 0, 1) // Start from next day
+		for {
+			for _, wdStr := range weekdays {
+				wd := parseWeekday(wdStr)
+				if wd != -1 && next.Weekday() == time.Weekday(wd) {
+					return next.Format("2006-01-02")
+				}
+			}
+			next = next.AddDate(0, 0, 1)
+		}
+	default: // Single weekday, e.g., "sunday"
+		wd := parseWeekday(rule)
+		if wd == -1 {
+			return "" // Invalid
+		}
+		return nextWeekday(time.Weekday(wd))(currentDue.AddDate(0, 0, 1)) // Next occurrence after current
+	}
+}
+
+// parseWeekday maps day names to time.Weekday.
+func parseWeekday(day string) int {
+	dayMap := map[string]int{
+		"mon": 1, "monday": 1,
+		"tue": 2, "tuesday": 2,
+		"wed": 3, "wednesday": 3,
+		"thu": 4, "thursday": 4,
+		"fri": 5, "friday": 5,
+		"sat": 6, "saturday": 6,
+		"sun": 0, "sunday": 0,
+	}
+	if val, ok := dayMap[day]; ok {
+		return val
+	}
+	return -1
 }

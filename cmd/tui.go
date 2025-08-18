@@ -51,7 +51,7 @@ func NewModel() model {
 		showPending: false,
 		showHelp:    false,
 		saveMsg:     "",
-		viewMode:    "normal",
+		viewMode:    "normal", // sticky
 	}
 }
 
@@ -156,7 +156,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.Focus()
 				return m, textinput.Blink
 			} else if len(m.tasks) > 0 {
-				m.err = fmt.Errorf("Move is disabled in filtered views")
+				m.err = fmt.Errorf("move is disabled in filtered views")
 				m.errTimeout = time.Now().Add(3 * time.Second)
 				return m, nil
 			}

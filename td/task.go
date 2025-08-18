@@ -26,44 +26,6 @@ type Task struct {
 	Important bool     `json:"important"`
 }
 
-// AddTaskWithDueDate adds a task with an optional due date
-func AddTaskWithDueDate(text, due string) error {
-	tasks, _ := LoadTasks()
-	parsed := ""
-	if due != "" {
-		dt, err := ParseNaturalDate(due)
-		if err != nil {
-			return err
-		}
-		parsed = dt
-	}
-	newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false, DueDate: parsed}
-	tasks = append(tasks, newTask)
-	return SaveTasks(tasks)
-}
-
-// ListTasks displays all tasks
-func ListTasks() {
-	tasks, _ := LoadTasks()
-	if len(tasks) == 0 {
-		color.Yellow("📭 No tasks available.")
-		return
-	}
-
-	for _, task := range tasks {
-		status := color.CyanString("[ ] %d: %s", task.ID, task.Text)
-		if task.Completed {
-			status = color.GreenString("[✓] %d: %s", task.ID, task.Text)
-		}
-
-		if task.DueDate != "" {
-			status += color.MagentaString(" (Due: %s)", task.DueDate)
-		}
-
-		fmt.Println(status)
-	}
-}
-
 // ListFilterOptions defines filters that can be applied to a task list
 type ListFilterOptions struct {
 	ShowDone    bool
@@ -119,24 +81,31 @@ func FilterTasks(tasks []Task, opts ListFilterOptions) []Task {
 	return filtered
 }
 
-// MarkTaskDone marks a task as completed
+// MarkTaskDone marks a task as completed and handles recurrence
 func MarkTaskDone(input string) error {
 	tasks, _ := LoadTasks()
 	found := false
-
 	id, err := strconv.Atoi(input)
+	if err != nil {
+		return fmt.Errorf("invalid task ID: %s", input)
+	}
 	for i, task := range tasks {
-		if (err == nil && task.ID == id) || task.Text == input {
+		if task.ID == id {
 			tasks[i].Completed = true
 			found = true
+			if task.Recurring != "" {
+				newTask := tasks[i]
+				newTask.ID = len(tasks) + 1 // Or use NextTaskID if defined
+				newTask.Completed = false
+				newTask.DueDate = CalculateNextDueDate(task.DueDate, task.Recurring)
+				tasks = append(tasks, newTask)
+			}
 			break
 		}
 	}
-
 	if !found {
 		return fmt.Errorf("task not found")
 	}
-
 	return SaveTasks(tasks)
 }
 
@@ -230,4 +199,91 @@ func HasSubtasks(tasks []Task, taskID int) bool {
 		}
 	}
 	return false
+}
+
+// AddTaskWithDueDate adds a task with an optional due date
+func AddTaskWithDueDate(text, due string) error {
+	tasks, _ := LoadTasks()
+	parsed := ""
+	if due != "" {
+		dt, err := ParseNaturalDate(due)
+		if err != nil {
+			return err
+		}
+		parsed = dt
+	}
+	newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false, DueDate: parsed}
+	tasks = append(tasks, newTask)
+	return SaveTasks(tasks)
+}
+
+// ListTasks displays all tasks with hierarchy and details
+func ListTasks() {
+	tasks, _ := LoadTasks()
+	if len(tasks) == 0 {
+		color.Yellow("📭 No tasks available.")
+		return
+	}
+
+	// Optional: Filter with defaults (e.g., show all)
+	opts := ListFilterOptions{} // Can add flags later
+	filtered := FilterTasks(tasks, opts)
+
+	// Build hierarchy: map parent ID to subtasks
+	taskMap := make(map[int][]Task)
+	var topLevel []Task
+	for _, task := range filtered {
+		if task.ParentID == 0 {
+			topLevel = append(topLevel, task)
+		} else {
+			taskMap[task.ParentID] = append(taskMap[task.ParentID], task)
+		}
+	}
+
+	// Sort top-level by ID (or customize)
+	sort.Slice(topLevel, func(i, j int) bool {
+		return topLevel[i].ID < topLevel[j].ID
+	})
+
+	for _, task := range topLevel {
+		printTaskLine(task, "") // No indent for top-level
+		// Print subtasks indented
+		subtasks := taskMap[task.ID]
+		sort.Slice(subtasks, func(i, j int) bool {
+			return subtasks[i].ID < subtasks[j].ID
+		})
+		for _, sub := range subtasks {
+			printTaskLine(sub, "  ↳ ") // Indent subtasks
+		}
+	}
+}
+
+// Helper to print a single task line with details
+func printTaskLine(task Task, indent string) {
+	status := color.CyanString("[ ] %d: %s", task.ID, task.Text)
+	if task.Completed {
+		status = color.GreenString("[✓] %d: %s", task.ID, task.Text)
+	}
+
+	if task.DueDate != "" {
+		status += color.MagentaString(" (Due: %s)", task.DueDate)
+	}
+	if len(task.Tags) > 0 {
+		status += color.BlueString(" (Tags: %s)", strings.Join(task.Tags, ", "))
+	}
+	if task.Priority != "" {
+		status += color.YellowString(" (Priority: %s)", task.Priority)
+	}
+	if task.Recurring != "" {
+		status += color.CyanString(" (Recurring: %s)", task.Recurring)
+	}
+	if task.Notes != "" {
+		notesTrunc := task.Notes
+		if len(notesTrunc) > 50 {
+			notesTrunc = notesTrunc[:47] + "..."
+		}
+		status += color.RedString(" (Notes: %s)", notesTrunc)
+	}
+
+	fmt.Println(indent + status)
 }

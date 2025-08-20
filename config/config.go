@@ -2,6 +2,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -66,7 +67,9 @@ func GetTaskFilePath() string {
 		}
 	}
 	dir := filepath.Dir(path)
-	_ = os.MkdirAll(dir, 0755)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create directory %s: %v\n", dir, err)
+	}
 	return path
 }
 
@@ -82,16 +85,24 @@ func GetBackupTaskFilePath() string {
 	return path
 }
 
+func GetSortOrder() string {
+	order := getEnv("TODO_SORT", "id")
+	allowed := []string{"id", "due", "priority", "text"}
+	for _, a := range allowed {
+		if order == a {
+			return order
+		}
+	}
+	fmt.Fprintf(os.Stderr, "Invalid TODO_SORT: %s, falling back to 'id'\n", order)
+	return "id"
+}
+
 func GetOutputFormat() string {
 	return DefaultOutputFormat
 }
 
 func GetTuiTheme() string {
 	return TuiTheme
-}
-
-func GetSortOrder() string {
-	return DefaultSortOrder
 }
 
 func GetDefaultPriority() string {

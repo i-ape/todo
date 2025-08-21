@@ -39,6 +39,7 @@ func ConfirmPrompt(question string) bool {
 	return input == "y" || input == "yes"
 }
 
+/*
 func NextTaskID(tasks []Task) int {
 	max := 0
 	for _, t := range tasks {
@@ -48,6 +49,7 @@ func NextTaskID(tasks []Task) int {
 	}
 	return max + 1
 }
+*/
 
 func Slugify(s string) string {
 	s = strings.ToLower(strings.TrimSpace(s))

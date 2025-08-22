@@ -1,6 +1,7 @@
 package todo
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,18 +13,24 @@ import (
 	"github.com/fatih/color"
 )
 
+// PromptInput prompts the user for input, pre-filling with current value
 func PromptInput(prompt string, current string) string {
 	fmt.Printf("%s [%s]: ", prompt, current)
-	var input string
-	fmt.Scanln(&input)
-	return strings.TrimSpace(input)
+	reader := bufio.NewReader(os.Stdin)
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(input)
+	if input == "" {
+		return current // Return current if empty
+	}
+	return input
 }
 
+// ParseTags parses comma-separated tags, handling @ or # prefixes
 func ParseTags(input string) []string {
 	parts := strings.Split(input, ",")
 	var tags []string
 	for _, tag := range parts {
-		trimmed := strings.TrimSpace(tag)
+		trimmed := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(tag, "@"), "#"))
 		if trimmed != "" {
 			tags = append(tags, trimmed)
 		}
@@ -31,6 +38,7 @@ func ParseTags(input string) []string {
 	return tags
 }
 
+// ConfirmPrompt prompts for yes/no confirmation, defaulting to no
 func ConfirmPrompt(question string) bool {
 	fmt.Printf("%s [y/N]: ", question)
 	var input string
@@ -39,24 +47,14 @@ func ConfirmPrompt(question string) bool {
 	return input == "y" || input == "yes"
 }
 
-/*
-func NextTaskID(tasks []Task) int {
-	max := 0
-	for _, t := range tasks {
-		if t.ID > max {
-			max = t.ID
-		}
-	}
-	return max + 1
-}
-*/
-
+// Slugify converts string to slug format
 func Slugify(s string) string {
 	s = strings.ToLower(strings.TrimSpace(s))
 	s = strings.ReplaceAll(s, " ", "-")
 	return s
 }
 
+// JoinNonEmpty joins non-empty strings with separator
 func JoinNonEmpty(elems []string, sep string) string {
 	var result []string
 	for _, e := range elems {
@@ -67,6 +65,7 @@ func JoinNonEmpty(elems []string, sep string) string {
 	return strings.Join(result, sep)
 }
 
+// ParsePriority parses and normalizes priority string
 func ParsePriority(s string) string {
 	switch strings.ToLower(strings.TrimSpace(s)) {
 	case "low":
@@ -78,6 +77,7 @@ func ParsePriority(s string) string {
 	}
 }
 
+// ParseFlags parses command-line flags and args
 func ParseFlags(args []string) (command string, commandArgs []string, flags map[string]string) {
 	flags = make(map[string]string)
 	command = ""
@@ -91,6 +91,8 @@ func ParseFlags(args []string) (command string, commandArgs []string, flags map[
 			} else {
 				flags[arg[2:]] = "true"
 			}
+		} else if strings.HasPrefix(arg, "-") { // Handle short flags, e.g., -j for --json
+			flags[arg[1:]] = "true"
 		} else if command == "" {
 			command = arg
 		} else {
@@ -100,6 +102,7 @@ func ParseFlags(args []string) (command string, commandArgs []string, flags map[
 	return
 }
 
+// ParseDateTimeDurationRepeat parses strings like "friday @ 14:00 for 45m every weekday"
 func ParseDateTimeDurationRepeat(input string) (date, t, dur, recurring, until string, err error) {
 	input = strings.ToLower(input)
 	main := input
@@ -121,21 +124,30 @@ func ParseDateTimeDurationRepeat(input string) (date, t, dur, recurring, until s
 		}
 
 		// Parse recurrence
-		if len(tokens) == 2 && tokens[0] == "for" {
-			delta := tokens[1]
-			now := time.Now()
-			switch {
-			case strings.HasSuffix(delta, "d"):
-				d, _ := strconv.Atoi(strings.TrimSuffix(delta, "d"))
-				until = now.AddDate(0, 0, d).Format("2006-01-02")
-			case strings.HasSuffix(delta, "w"):
-				w, _ := strconv.Atoi(strings.TrimSuffix(delta, "w"))
-				until = now.AddDate(0, 0, w*7).Format("2006-01-02")
-			case strings.HasSuffix(delta, "m"):
-				m, _ := strconv.Atoi(strings.TrimSuffix(delta, "m"))
-				until = now.AddDate(0, m, 0).Format("2006-01-02")
+		if len(tokens) > 0 && tokens[0] == "every" {
+			recurring = strings.Join(tokens, " ")
+			// Parse optional "for X duration" after recurrence
+			if strings.Contains(recurring, "for") {
+				parts := strings.SplitN(recurring, "for", 2)
+				recurring = strings.TrimSpace(parts[0])
+				delta := strings.TrimSpace(parts[1])
+				now := time.Now()
+				switch {
+				case strings.HasSuffix(delta, "d"):
+					d, _ := strconv.Atoi(strings.TrimSuffix(delta, "d"))
+					until = now.AddDate(0, 0, d).Format("2006-01-02")
+				case strings.HasSuffix(delta, "w"):
+					w, _ := strconv.Atoi(strings.TrimSuffix(delta, "w"))
+					until = now.AddDate(0, 0, w*7).Format("2006-01-02")
+				case strings.HasSuffix(delta, "m"):
+					m, _ := strconv.Atoi(strings.TrimSuffix(delta, "m"))
+					until = now.AddDate(0, m, 0).Format("2006-01-02")
+				case strings.HasSuffix(delta, "weeks"):
+					w, _ := strconv.Atoi(strings.TrimSuffix(delta, "weeks"))
+					until = now.AddDate(0, 0, w*7).Format("2006-01-02")
+					// Add more for "3weeks", etc.
+				}
 			}
-			recurring = "custom"
 		}
 	}
 
@@ -144,6 +156,7 @@ func ParseDateTimeDurationRepeat(input string) (date, t, dur, recurring, until s
 	return d, t, dur, recurring, until, err
 }
 
+// UpdateTaskByID updates a task by ID using the provided function
 func UpdateTaskByID(id int, updateFn func(*Task)) error {
 	tasks, err := LoadTasks()
 	if err != nil {
@@ -158,19 +171,43 @@ func UpdateTaskByID(id int, updateFn func(*Task)) error {
 	return fmt.Errorf("task not found")
 }
 
+// PromptMultiline prompts for multiline input using editor
 func PromptMultiline(prompt, initial string) string {
-	tmpfile := "/tmp/todo_note.txt"
-	_ = os.WriteFile(tmpfile, []byte(initial), 0644)
-	cmd := exec.Command(os.Getenv("EDITOR"), tmpfile)
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vi" // Fallback
+	}
+	tmpfile, err := os.CreateTemp("", "todo_note_*.txt")
+	if err != nil {
+		fmt.Println("Error creating temp file:", err)
+		return initial
+	}
+	defer os.Remove(tmpfile.Name())
+
+	if _, err := tmpfile.Write([]byte(initial)); err != nil {
+		fmt.Println("Error writing initial note:", err)
+		return initial
+	}
+	tmpfile.Close()
+
+	cmd := exec.Command(editor, tmpfile.Name())
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Run()
-	data, _ := os.ReadFile(tmpfile)
+	if err := cmd.Run(); err != nil {
+		fmt.Println("Error running editor:", err)
+		return initial
+	}
+
+	data, err := os.ReadFile(tmpfile.Name())
+	if err != nil {
+		fmt.Println("Error reading note:", err)
+		return initial
+	}
 	return strings.TrimSpace(string(data))
 }
 
-// PrintTaskDetails prints a detailed view of a single task.
+// PrintTaskDetails prints detailed task info
 func PrintTaskDetails(task Task) {
 	fmt.Printf("🆔 ID: %d\n", task.ID)
 	fmt.Printf("📝 Text: %s\n", task.Text)
@@ -195,7 +232,7 @@ func PrintTaskDetails(task Task) {
 	}
 }
 
-// / helper function for rendering a task
+// RenderTask renders a task string for TUI/CLI
 func RenderTask(task Task, isSelected bool) string {
 	cursor := "  "
 	if isSelected {
@@ -226,6 +263,7 @@ func RenderTask(task Task, isSelected bool) string {
 	return fmt.Sprintf("%s %s %s", cursor, status, label)
 }
 
+// SortTasks sorts tasks by order
 func SortTasks(tasks []Task, order string) {
 	sort.Slice(tasks, func(i, j int) bool {
 		switch order {
@@ -240,4 +278,12 @@ func SortTasks(tasks []Task, order string) {
 			return tasks[i].ID < tasks[j].ID
 		}
 	})
+}
+
+// TruncateString truncates a string to maxLen with ellipsis
+func TruncateString(s string, maxLen int) string {
+	if len(s) > maxLen {
+		return s[:maxLen-3] + "..."
+	}
+	return s
 }

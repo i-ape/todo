@@ -14,16 +14,31 @@ import (
 
 func handleAdd() {
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: todo add [task text] [optional due date]")
+		fmt.Println("Usage: todo add [task text] [optional due date] [optional priority: high/medium/low] [optional recurrence: every ...]")
 		return
 	}
 	text := os.Args[2]
-	due := ""
-	if len(os.Args) > 3 {
-		due = strings.Join(os.Args[3:], " ")
+	dueParts := []string{}
+	priority := ""
+	recurring := ""
+	args := os.Args[3:]
+	for i := 0; i < len(args); i++ {
+		arg := strings.ToLower(args[i])
+		if arg == "high" || arg == "medium" || arg == "low" {
+			priority = arg
+		} else if strings.HasPrefix(arg, "every") {
+			recurring = strings.Join(args[i:], " ") // Join remaining for multi-word recurrence
+			break                                   // Recurrence is last
+		} else {
+			dueParts = append(dueParts, args[i])
+		}
 	}
-	if err := AddTask(text, due); err != nil {
+	due := strings.Join(dueParts, " ")
+
+	if err := todo.AddTaskWithDueDateAndRecurring(text, due, recurring, priority); err != nil {
 		fmt.Println("Error:", err)
+	} else {
+		fmt.Println("✅ Task added.")
 	}
 }
 

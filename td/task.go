@@ -81,6 +81,45 @@ func FilterTasks(tasks []Task, opts ListFilterOptions) []Task {
 	return filtered
 }
 
+// AddTaskWithDueDateAndRecurring adds a task with optional due, recurrence, and priority
+func AddTaskWithDueDateAndRecurring(text, due, recurring, priority string) error {
+	tasks, _ := LoadTasks()
+	parsedDue := ""
+	if due != "" {
+		dt, err := ParseNaturalDate(due)
+		if err != nil {
+			return err
+		}
+		parsedDue = dt
+	}
+	// Parse tags from text
+	tags := ParseTagsFromText(text) // New helper below
+
+	newTask := Task{
+		ID:        NextTaskID(tasks),
+		Text:      text,
+		Completed: false,
+		DueDate:   parsedDue,
+		Recurring: recurring,
+		Tags:      tags,
+		Priority:  ParsePriority(priority), // Use ParsePriority from utils.go
+	}
+	tasks = append(tasks, newTask)
+	return SaveTasks(tasks)
+}
+
+// ParseTagsFromText extracts @/# tags from task text
+func ParseTagsFromText(text string) []string {
+	var tags []string
+	words := strings.Fields(text)
+	for _, word := range words {
+		if strings.HasPrefix(word, "@") || strings.HasPrefix(word, "#") {
+			tags = append(tags, strings.TrimPrefix(strings.TrimPrefix(word, "@"), "#"))
+		}
+	}
+	return tags
+}
+
 // MarkTaskDone marks a task as completed and handles recurrence
 func MarkTaskDone(input string) error {
 	tasks, _ := LoadTasks()

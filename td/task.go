@@ -6,11 +6,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"todo/config"
 
 	"github.com/fatih/color"
 )
 
-// Task struct represents a single task
+// Task represents a single task with all attributes.
 type Task struct {
 	ID        int      `json:"id"`
 	Text      string   `json:"text"`
@@ -26,7 +27,7 @@ type Task struct {
 	Important bool     `json:"important"`
 }
 
-// ListFilterOptions defines filters that can be applied to a task list
+// ListFilterOptions defines filters for task lists.
 type ListFilterOptions struct {
 	ShowDone    bool
 	ShowPending bool
@@ -39,7 +40,7 @@ type ListFilterOptions struct {
 	Sticky      bool
 }
 
-// task.go
+// FilterTasks filters tasks based on options.
 func FilterTasks(tasks []Task, opts ListFilterOptions) []Task {
 	var filtered []Task
 	today := time.Now().Format("2006-01-02")
@@ -74,16 +75,17 @@ func FilterTasks(tasks []Task, opts ListFilterOptions) []Task {
 		}
 		filtered = append(filtered, task)
 	}
-	// Optional: Add sorting logic (e.g., by DueDate, Priority, or ID)
-	sort.Slice(filtered, func(i, j int) bool {
-		return filtered[i].ID < filtered[j].ID // Example: sort by ID
-	})
+	// Sort based on config
+	SortTasks(filtered, config.GetSortOrder())
 	return filtered
 }
 
-// AddTaskWithDueDateAndRecurring adds a task with optional due, recurrence, and priority
+// AddTaskWithDueDateAndRecurring adds a task with optional due date, recurrence, and priority.
 func AddTaskWithDueDateAndRecurring(text, due, recurring, priority string) error {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
 	parsedDue := ""
 	if due != "" {
 		dt, err := ParseNaturalDate(due)
@@ -93,7 +95,7 @@ func AddTaskWithDueDateAndRecurring(text, due, recurring, priority string) error
 		parsedDue = dt
 	}
 	// Parse tags from text
-	tags := ParseTagsFromText(text) // New helper below
+	tags := ParseTagsFromText(text)
 
 	newTask := Task{
 		ID:        NextTaskID(tasks),
@@ -102,13 +104,13 @@ func AddTaskWithDueDateAndRecurring(text, due, recurring, priority string) error
 		DueDate:   parsedDue,
 		Recurring: recurring,
 		Tags:      tags,
-		Priority:  ParsePriority(priority), // Use ParsePriority from utils.go
+		Priority:  ParsePriority(priority),
 	}
 	tasks = append(tasks, newTask)
 	return SaveTasks(tasks)
 }
 
-// ParseTagsFromText extracts @/# tags from task text
+// ParseTagsFromText extracts @/# tags from task text.
 func ParseTagsFromText(text string) []string {
 	var tags []string
 	words := strings.Fields(text)
@@ -120,9 +122,12 @@ func ParseTagsFromText(text string) []string {
 	return tags
 }
 
-// MarkTaskDone marks a task as completed and handles recurrence
+// MarkTaskDone marks a task as completed and handles recurrence.
 func MarkTaskDone(input string) error {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
 	found := false
 	id, err := strconv.Atoi(input)
 	if err != nil {
@@ -134,7 +139,7 @@ func MarkTaskDone(input string) error {
 			found = true
 			if task.Recurring != "" {
 				newTask := tasks[i]
-				newTask.ID = len(tasks) + 1 // Or use NextTaskID if defined
+				newTask.ID = NextTaskID(tasks)
 				newTask.Completed = false
 				newTask.DueDate = CalculateNextDueDate(task.DueDate, task.Recurring)
 				tasks = append(tasks, newTask)
@@ -148,9 +153,12 @@ func MarkTaskDone(input string) error {
 	return SaveTasks(tasks)
 }
 
-// DeleteTask removes a task by ID or text
+// DeleteTask removes a task by ID or text.
 func DeleteTask(input string) error {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		return err
+	}
 	newTasks := []Task{}
 	found := false
 
@@ -170,7 +178,7 @@ func DeleteTask(input string) error {
 	return SaveTasks(newTasks)
 }
 
-// EditTaskText updates a task's text
+// EditTaskText updates a task's text.
 func EditTaskText(idOrText, newText string) error {
 	tasks, err := LoadTasks()
 	if err != nil {
@@ -182,6 +190,9 @@ func EditTaskText(idOrText, newText string) error {
 
 	for i := range tasks {
 		if (idErr == nil && tasks[i].ID == id) || tasks[i].Text == idOrText {
+			if strings.TrimSpace(newText) == "" {
+				return fmt.Errorf("new text cannot be empty")
+			}
 			tasks[i].Text = strings.TrimSpace(newText)
 			found = true
 			break
@@ -195,7 +206,7 @@ func EditTaskText(idOrText, newText string) error {
 	return SaveTasks(tasks)
 }
 
-// SearchTasks prints tasks that match the keyword
+// SearchTasks prints tasks that match the keyword.
 func SearchTasks(keyword string) {
 	tasks, err := LoadTasks()
 	if err != nil {
@@ -214,12 +225,12 @@ func SearchTasks(keyword string) {
 	}
 }
 
-// ClearTasks deletes all tasks
+// ClearTasks deletes all tasks.
 func ClearTasks() error {
 	return SaveTasks([]Task{})
 }
 
-// GetSubtasks returns all subtasks of a given task
+// GetSubtasks returns all subtasks of a given task.
 func GetSubtasks(tasks []Task, parentID int) []Task {
 	var subs []Task
 	for _, t := range tasks {
@@ -230,7 +241,7 @@ func GetSubtasks(tasks []Task, parentID int) []Task {
 	return subs
 }
 
-// HasSubtasks returns true if the task has child tasks
+// HasSubtasks returns true if the task has child tasks.
 func HasSubtasks(tasks []Task, taskID int) bool {
 	for _, t := range tasks {
 		if t.ParentID == taskID {
@@ -240,32 +251,20 @@ func HasSubtasks(tasks []Task, taskID int) bool {
 	return false
 }
 
-// AddTaskWithDueDate adds a task with an optional due date
-func AddTaskWithDueDate(text, due string) error {
-	tasks, _ := LoadTasks()
-	parsed := ""
-	if due != "" {
-		dt, err := ParseNaturalDate(due)
-		if err != nil {
-			return err
-		}
-		parsed = dt
-	}
-	newTask := Task{ID: len(tasks) + 1, Text: text, Completed: false, DueDate: parsed}
-	tasks = append(tasks, newTask)
-	return SaveTasks(tasks)
-}
-
 // ListTasks displays all tasks with hierarchy and details
 func ListTasks() {
-	tasks, _ := LoadTasks()
+	tasks, err := LoadTasks()
+	if err != nil {
+		color.Red("Error loading tasks: %v", err)
+		return
+	}
 	if len(tasks) == 0 {
 		color.Yellow("📭 No tasks available.")
 		return
 	}
 
 	// Optional: Filter with defaults (e.g., show all)
-	opts := ListFilterOptions{} // Can add flags later
+	opts := ListFilterOptions{}
 	filtered := FilterTasks(tasks, opts)
 
 	// Build hierarchy: map parent ID to subtasks
@@ -297,7 +296,7 @@ func ListTasks() {
 	}
 }
 
-// Helper to print a single task line with details
+// printTaskLine prints a single task line with details (helper for ListTasks)
 func printTaskLine(task Task, indent string) {
 	status := color.CyanString("[ ] %d: %s", task.ID, task.Text)
 	if task.Completed {
@@ -325,4 +324,9 @@ func printTaskLine(task Task, indent string) {
 	}
 
 	fmt.Println(indent + status)
+}
+
+// AddTaskWithDueDate is deprecated; use AddTaskWithDueDateAndRecurring instead.
+func AddTaskWithDueDate(text, due string) error {
+	return AddTaskWithDueDateAndRecurring(text, due, "", "")
 }

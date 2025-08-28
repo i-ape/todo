@@ -91,7 +91,7 @@ func ParseNaturalDate(input string) (string, error) {
 	}
 
 	// Handle natural language dates
-	if date, err := parseNaturalLanguageDate(input, now); err == nil {
+	if date, err := ParseNaturalLanguageDate(input, now); err == nil {
 		return date, nil
 	}
 
@@ -110,7 +110,7 @@ func ParseNaturalDate(input string) (string, error) {
 }
 
 // parseNaturalLanguageDate handles formats like "Dec 31, 2025" or "31 Dec 2025".
-func parseNaturalLanguageDate(input string, now time.Time) (string, error) {
+func ParseNaturalLanguageDate(input string, now time.Time) (string, error) {
 	parts := strings.Fields(input)
 	if len(parts) < 2 || len(parts) > 3 {
 		return "", fmt.Errorf("invalid natural language date")

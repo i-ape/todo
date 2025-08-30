@@ -17,31 +17,51 @@ func IsOverdue(date string) bool {
 var (
 	// abbreviationMap maps shortcut keywords to date functions.
 	abbreviationMap = map[string]func(time.Time) string{
+		// Today
 		"td": formatToday, "tdy": formatToday, "today": formatToday,
-		"tm": inDays(1), "tmmrw": inDays(1), "next": inDays(1), "tmr": inDays(1), "nxt": inDays(1),
+		"tod": formatToday, "now": formatToday, "eod": formatToday,
+
+		// Tomorrow
+		"tm": inDays(1), "tmr": inDays(1), "tmrw": inDays(1),
+		"tomo": inDays(1), "tmmrw": inDays(1), "next": inDays(1), "nxt": inDays(1),
+
+		// Day after
 		"af": inDays(2), "aft": inDays(2), "dayafter": inDays(2),
+
+		// Yesterday
 		"yd": inDays(-1), "yst": inDays(-1), "yesterday": inDays(-1),
-		"now": formatToday, "soon": inDays(3), "later": inDays(7), "asap": inDays(3),
-		"someday": func(t time.Time) string { return "" }, "tbd": func(t time.Time) string { return "" },
-		"nw": inDays(7), "nxtwk": inDays(7), "wk": inDays(7),
-		"n2w": inDays(14), "nxt2w": inDays(14),
-		"n3w": inDays(21), "nxt3w": inDays(21),
-		"biweekly": inDays(14),
-		"eowk":     nextWeekday(time.Friday),
-		"nm":       inMonths(1), "nxtm": inMonths(1), "em": endOfMonth,
+
+		// Near future
+		"soon": inDays(3), "asap": inDays(3), "later": inDays(7), "soonish": inDays(3),
+
+		// Week-based
+		"nw": inDays(7), "nxwk": inDays(7), "nextweek": inDays(7),
+		"n2w": inDays(14), "nx2w": inDays(14),
+		"n3w": inDays(21), "nx3w": inDays(21),
+		"biweekly": inDays(14), "fortnight": inDays(14),
+
+		// Month-based
+		"nm": inMonths(1), "nxtm": inMonths(1), "nextmonth": inMonths(1),
 		"2m": inMonths(2), "3m": inMonths(3),
+		"ny": func(t time.Time) string { return t.AddDate(1, 0, 0).Format("2006-01-02") }, // next year
+
+		// Weekdays (short + next)
 		"mon": nextWeekday(time.Monday), "tue": nextWeekday(time.Tuesday),
 		"wed": nextWeekday(time.Wednesday), "thu": nextWeekday(time.Thursday),
 		"fri": nextWeekday(time.Friday), "sat": nextWeekday(time.Saturday),
 		"sun":    nextWeekday(time.Sunday),
 		"nxtmon": nextWeekday(time.Monday), "nxfri": nextWeekday(time.Friday),
-		"eod": formatToday,
+
+		// Month boundaries
 		"bom": startOfMonth, "som": startOfMonth,
 		"sonm": startOfNextMonth, "eom": endOfMonth, "eonm": endOfNextMonth,
+
+		// Week boundaries
 		"eow": endOfWeek, "ew": func(t time.Time) string {
 			return t.AddDate(0, 0, 7-int(t.Weekday())).Format("2006-01-02")
 		},
 	}
+
 	// monthNames maps month names/abbreviations to numbers.
 	monthNames = map[string]int{
 		"jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,

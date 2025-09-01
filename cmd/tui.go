@@ -1,3 +1,6 @@
+// Package main contains the entry point for the TUI (Text User Interface) of the todo app.
+// It sets up the Bubble Tea model and program for interactive task management.
+
 package main
 
 import (
@@ -13,23 +16,25 @@ import (
 	"github.com/fatih/color"
 )
 
+// model represents the state of the TUI, including tasks, cursor position, and input modes.
 type model struct {
-	tasks       []todo.Task
-	cursor      int
-	quitting    bool
-	err         error
-	errTimeout  time.Time       // For auto-clearing errors
-	state       string          // Tracks TUI state (e.g., "normal", "new_task", "new_priority", "new_due", "new_tags")
-	newTask     todo.Task       // Temporary task being created
-	input       textinput.Model // Current input field
-	filterTag   string          // Tag to filter tasks
-	showPending bool            // Show only incomplete tasks
-	showHelp    bool            // Show help screen
-	saveMsg     string          // Temporary save confirmation message
-	saveTimeout time.Time       // For auto-clearing save message
-	viewMode    string          // "normal" or "sticky"
+	tasks       []todo.Task     // List of loaded tasks
+	cursor      int             // Current cursor position in the task list
+	quitting    bool            // Flag to indicate if the TUI is quitting
+	err         error           // Current error, if any
+	errTimeout  time.Time       // Time when the error should auto-clear
+	state       string          // Current TUI state (e.g., "normal", "new_task")
+	newTask     todo.Task       // Temporary task struct for creation
+	input       textinput.Model // Input field for user entries
+	filterTag   string          // Tag filter for tasks
+	showPending bool            // Flag to show only pending tasks
+	showHelp    bool            // Flag to show the help screen
+	saveMsg     string          // Temporary save success message
+	saveTimeout time.Time       // Time when the save message should auto-clear
+	viewMode    string          // View mode ("normal" or "sticky")
 }
 
+// NewModel initializes and returns a new model instance, loading tasks.
 func NewModel() model {
 	tasks, err := todo.LoadTasks()
 	if err != nil {
@@ -55,23 +60,23 @@ func NewModel() model {
 	}
 }
 
+// Init initializes the model, returning the blink command for input.
 func (m model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Auto-clear error after 3 seconds
+	// Auto-clear temporary messages
 	if !m.errTimeout.IsZero() && time.Now().After(m.errTimeout) {
 		m.err = nil
 		m.errTimeout = time.Time{}
 	}
-	// Auto-clear save message after 2 seconds
 	if m.saveMsg != "" && time.Now().After(m.saveTimeout) {
 		m.saveMsg = ""
 		m.saveTimeout = time.Time{}
 	}
 
-	// Handle help screen toggle
+	// Handle help screen input
 	if m.showHelp {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
@@ -84,6 +89,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Process key messages in normal state
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -98,16 +104,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		case "v":
-			// Toggle between normal and sticky view modes
+			// Toggle view mode
 			if m.viewMode == "normal" {
 				m.viewMode = "sticky"
 			} else {
 				m.viewMode = "normal"
 			}
-			m.cursor = 0 // Reset cursor to avoid out-of-bounds errors
+			m.cursor = 0
 			return m, nil
 		case "m":
-			// Toggle the sticky status of the selected task
+			// Toggle sticky status
 			if len(m.tasks) > 0 {
 				m.tasks[m.cursor].Sticky = !m.tasks[m.cursor].Sticky
 			}
@@ -116,6 +122,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.showHelp = !m.showHelp
 			return m, nil
 		case "i":
+			// Toggle importance and save
 			if len(m.tasks) > 0 {
 				m.tasks[m.cursor].Important = !m.tasks[m.cursor].Important
 				if err := todo.SaveTasks(m.tasks); err != nil {
@@ -127,11 +134,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			return m, nil
-		case "o": // Toggle showing only pending tasks
+		case "o":
+			// Toggle pending filter
 			m.showPending = !m.showPending
-			m.cursor = 0 // Reset cursor when filter changes
+			m.cursor = 0
 			return m, nil
 		case "f":
+			// Enter filter tag mode if fzf enabled
 			if m.state == "normal" && !config.DisableFzf {
 				m.state = "filter_tag"
 				m.input = textinput.New()
@@ -139,16 +148,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.Focus()
 				return m, textinput.Blink
 			}
-		case "N": // Edit or add notes
+		case "N":
+			// Enter note edit mode
 			if len(m.tasks) > 0 {
 				m.state = "edit_note"
 				m.input = textinput.New()
 				m.input.Placeholder = "📝 Enter note for task:"
-				m.input.SetValue(m.tasks[m.cursor].Notes) // Pre-fill existing note
+				m.input.SetValue(m.tasks[m.cursor].Notes)
 				m.input.Focus()
 				return m, textinput.Blink
 			}
-		case "M": // Move task up/down
+		case "M":
+			// Enter move mode if no filters active
 			if len(m.tasks) > 0 && m.filterTag == "" && !m.showPending && m.viewMode == "normal" {
 				m.state = "move_task"
 				m.input = textinput.New()
@@ -163,6 +174,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	// Handle input in non-normal states
 	if m.state != "normal" {
 		var cmd tea.Cmd
 		switch msg := msg.(type) {
@@ -172,6 +184,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				value := strings.TrimSpace(m.input.Value())
 				switch m.state {
 				case "new_task":
+					// Create new task if valid
 					if value != "" {
 						m.newTask = todo.Task{
 							ID:   todo.NextTaskID(m.tasks),
@@ -188,6 +201,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.input.Reset()
 					return m, nil
 				case "new_priority":
+					// Set priority and proceed
 					priority := config.GetDefaultPriority()
 					if value != "" {
 						if todo.ParsePriority(value) == "" {
@@ -205,6 +219,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.input.Placeholder = "📅 Enter due date (e.g., today, 2025-12-31, or enter to skip):"
 					return m, textinput.Blink
 				case "new_due":
+					// Set due date if valid
 					if value != "" {
 						dueDate, err := todo.ParseNaturalDate(value)
 						if err != nil {
@@ -221,6 +236,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.input.Placeholder = "🏷️ Enter tags (comma-separated, or enter to skip):"
 					return m, textinput.Blink
 				case "new_tags":
+					// Set tags, save new task
 					if value != "" {
 						m.newTask.Tags = todo.ParseTags(value)
 					}
@@ -234,9 +250,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					m.state = "normal"
 					m.input.Reset()
-					m.cursor = len(m.tasks) - 1 // Move cursor to new task
+					m.cursor = len(m.tasks) - 1
 					return m, nil
 				case "edit_text":
+					// Update text if valid
 					if value != "" {
 						m.tasks[m.cursor].Text = value
 						if err := todo.SaveTasks(m.tasks); err != nil {
@@ -251,6 +268,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.input.Reset()
 					return m, nil
 				case "edit_due":
+					// Update due date if valid
 					if value != "" {
 						dueDate, err := todo.ParseNaturalDate(value)
 						if err != nil {
@@ -273,6 +291,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.input.Reset()
 					return m, nil
 				case "edit_tags":
+					// Update tags
 					if value != "" {
 						m.tasks[m.cursor].Tags = todo.ParseTags(value)
 						if err := todo.SaveTasks(m.tasks); err != nil {
@@ -287,6 +306,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.input.Reset()
 					return m, nil
 				case "edit_priority":
+					// Update priority if valid
 					if value != "" {
 						if todo.ParsePriority(value) == "" {
 							m.err = fmt.Errorf("invalid priority: %s", value)
@@ -308,7 +328,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.input.Reset()
 					return m, nil
 				case "edit_note":
-					m.tasks[m.cursor].Notes = value // Allow empty to clear note
+					// Update note and save
+					m.tasks[m.cursor].Notes = value
 					if err := todo.SaveTasks(m.tasks); err != nil {
 						m.err = err
 						m.errTimeout = time.Now().Add(3 * time.Second)
@@ -320,6 +341,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.input.Reset()
 					return m, nil
 				case "move_task":
+					// Handle task move and save
 					if value == "u" && m.cursor > 0 {
 						m.tasks[m.cursor], m.tasks[m.cursor-1] = m.tasks[m.cursor-1], m.tasks[m.cursor]
 						m.cursor--
@@ -343,6 +365,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.input.Reset()
 					return m, nil
 				case "filter_tag":
+					// Apply or clear tag filter
 					if value != "" {
 						m.filterTag = value
 					} else {
@@ -353,6 +376,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.input.Reset()
 					return m, nil
 				case "new_subtask":
+					// Add subtask if valid
 					if value != "" {
 						subtask := todo.Task{
 							ID:        todo.NextTaskID(m.tasks),
@@ -375,12 +399,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 			default:
+				// Update input field
 				m.input, cmd = m.input.Update(msg)
 			}
 		}
 		return m, cmd
 	}
 
+	// Handle navigation and actions in normal state
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -393,6 +419,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor--
 			}
 		case " ", "enter":
+			// Toggle completion and handle recurrence
 			topLevel := m.visibleTopLevelTasks()
 			if len(topLevel) == 0 || m.cursor >= len(topLevel) {
 				return m, nil
@@ -405,7 +432,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						newTask := m.tasks[i]
 						newTask.ID = todo.NextTaskID(m.tasks)
 						newTask.Completed = false
-						newTask.DueDate = todo.CalculateNextDueDate(newTask.DueDate, newTask.Recurring) // Assume implemented in due.go
+						newTask.DueDate = todo.CalculateNextDueDate(newTask.DueDate, newTask.Recurring)
 						m.tasks = append(m.tasks, newTask)
 					}
 					break
@@ -420,6 +447,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "x", "backspace":
+			// Delete task and subtasks
 			topLevel := m.visibleTopLevelTasks()
 			if len(topLevel) == 0 || m.cursor >= len(topLevel) {
 				return m, nil
@@ -452,46 +480,53 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "d":
+			// Enter due date edit mode
 			m.state = "edit_due"
 			m.input = textinput.New()
 			m.input.Placeholder = "📅 Enter new due date (e.g., today, 2025-12-31):"
-			m.input.SetValue(m.tasks[m.cursor].DueDate) // Pre-fill
+			m.input.SetValue(m.tasks[m.cursor].DueDate)
 			m.input.Focus()
 			return m, textinput.Blink
 		case "e":
+			// Enter text edit mode
 			m.state = "edit_text"
 			m.input = textinput.New()
 			m.input.Placeholder = "✏️ Edit task text:"
-			m.input.SetValue(m.tasks[m.cursor].Text) // Pre-fill
+			m.input.SetValue(m.tasks[m.cursor].Text)
 			m.input.Focus()
 			return m, textinput.Blink
 		case "n":
+			// Enter new task mode
 			m.state = "new_task"
 			m.input = textinput.New()
 			m.input.Placeholder = "➕ New task:"
 			m.input.Focus()
 			return m, textinput.Blink
 		case "t":
+			// Enter tags edit mode
 			m.state = "edit_tags"
 			m.input = textinput.New()
 			m.input.Placeholder = "🏷️ Enter tags (comma-separated):"
-			m.input.SetValue(strings.Join(m.tasks[m.cursor].Tags, ", ")) // Pre-fill
+			m.input.SetValue(strings.Join(m.tasks[m.cursor].Tags, ", "))
 			m.input.Focus()
 			return m, textinput.Blink
 		case "p":
+			// Enter priority edit mode
 			m.state = "edit_priority"
 			m.input = textinput.New()
 			m.input.Placeholder = "🔥 Enter priority (high, medium, low):"
-			m.input.SetValue(m.tasks[m.cursor].Priority) // Pre-fill
+			m.input.SetValue(m.tasks[m.cursor].Priority)
 			m.input.Focus()
 			return m, textinput.Blink
 		case "s":
+			// Enter subtask add mode
 			m.state = "new_subtask"
 			m.input = textinput.New()
 			m.input.Placeholder = "📌 Subtask text:"
 			m.input.Focus()
 			return m, textinput.Blink
 		case "f":
+			// Handle fzf selection
 			if config.DisableFzf {
 				m.err = fmt.Errorf("fzf is disabled")
 				m.errTimeout = time.Now().Add(3 * time.Second)
@@ -517,6 +552,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "r":
+			// Sort tasks and save
 			todo.SortTasks(m.tasks, config.GetSortOrder())
 			if err := todo.SaveTasks(m.tasks); err != nil {
 				m.err = err
@@ -527,6 +563,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "c":
+			// Clear error message
 			m.err = nil
 			m.errTimeout = time.Time{}
 			return m, nil
@@ -573,6 +610,7 @@ func (m model) visibleTopLevelTasks() []todo.Task {
 	return result
 }
 
+// View renders the current view of the TUI.
 func (m model) View() string {
 	if m.quitting {
 		return "Goodbye 👋\n"
@@ -673,7 +711,7 @@ func (m model) View() string {
 	return b.String()
 }
 
-// helpView renders the help screen
+// helpView renders the help screen.
 func (m model) helpView() string {
 	var b strings.Builder
 	b.WriteString(color.CyanString("📋 To-Do List Help\n\n"))
@@ -707,7 +745,7 @@ func (m model) helpView() string {
 	return b.String()
 }
 
-// it starts the TUI
+// StartTUI starts the Bubble Tea program for the TUI.
 func StartTUI() {
 	p := tea.NewProgram(NewModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {

@@ -242,4 +242,12 @@ Push notifications/integrations (via cron, ntfy, or APIs)
  🧠 Custom aliases / shortcuts
 
 
- test
+ # notes:
+
+i have a error with # include <linux/errno.h>
+it seems kernal related cause i didnt have ubove file 
+update to linux-api-headers fixed but issue persists
+this is a bad commit but it is a learning experience.
+EDIT: I fixed the issue by updating extension in ide
+i am quite the fool although it was only pre release version that worked.
+

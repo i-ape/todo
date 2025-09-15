@@ -10,8 +10,12 @@ import (
 )
 
 var (
-	TaskFile            = getEnv("TODO_PATH", defaultTaskFile())
-	BackupTaskFile      = getEnv("TODO_BACKUP_PATH", defaultBackupTaskFile())
+	// File paths
+	TaskFile       = getEnv("TODO_PATH", defaultTaskFile())
+	BackupTaskFile = getEnv("TODO_BACKUP_PATH", defaultBackupTaskFile())
+	PathMode       = getEnv("TODO_PATH_MODE", "home") // "home" or "cwd"
+
+	// Features
 	DisableFzf          = getEnvBool("TODO_NO_FZF", false)
 	EnableTui           = getEnvBool("TODO_TUI", false)
 	DefaultOutputFormat = getEnv("TODO_OUTPUT", "text")
@@ -21,6 +25,10 @@ var (
 	FzfArgs             = getEnv("TODO_FZF_ARGS", "--prompt='Task> '")
 	MaxTasks            = getEnvInt("TODO_MAX_TASKS", 1000)
 )
+
+// ----------------------------
+// Defaults
+// ----------------------------
 
 func defaultTaskFile() string {
 	if home, err := os.UserHomeDir(); err == nil {
@@ -36,6 +44,10 @@ func defaultBackupTaskFile() string {
 	return "tasks.json.bak"
 }
 
+// ----------------------------
+// Env helpers
+// ----------------------------
+
 func getEnv(key, fallback string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
@@ -45,7 +57,7 @@ func getEnv(key, fallback string) string {
 
 func getEnvBool(key string, fallback bool) bool {
 	if value, exists := os.LookupEnv(key); exists {
-		return value == "1" || value == "true"
+		return value == "1" || strings.ToLower(value) == "true"
 	}
 	return fallback
 }
@@ -59,13 +71,35 @@ func getEnvInt(key string, fallback int) int {
 	return fallback
 }
 
+// ----------------------------
+// File path resolution
+// ----------------------------
+
 func GetTaskFilePath() string {
-	path := TaskFile
-	if !filepath.IsAbs(path) {
-		if cwd, err := os.Getwd(); err == nil {
-			path = filepath.Join(cwd, path)
+	return resolvePath(TaskFile)
+}
+
+func GetBackupTaskFilePath() string {
+	return resolvePath(BackupTaskFile)
+}
+
+func resolvePath(file string) string {
+	var path string
+
+	switch PathMode {
+	case "cwd":
+		// Always resolve relative to current working directory
+		if !filepath.IsAbs(file) {
+			if cwd, err := os.Getwd(); err == nil {
+				path = filepath.Join(cwd, file)
+			}
+		} else {
+			path = file
 		}
+	default: // "home" or anything else → leave as-is
+		path = file
 	}
+
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create directory %s: %v\n", dir, err)
@@ -73,17 +107,9 @@ func GetTaskFilePath() string {
 	return path
 }
 
-func GetBackupTaskFilePath() string {
-	path := BackupTaskFile
-	if !filepath.IsAbs(path) {
-		if cwd, err := os.Getwd(); err == nil {
-			path = filepath.Join(cwd, path)
-		}
-	}
-	dir := filepath.Dir(path)
-	_ = os.MkdirAll(dir, 0755)
-	return path
-}
+// ----------------------------
+// Other config accessors
+// ----------------------------
 
 func GetSortOrder() string {
 	order := getEnv("TODO_SORT", "id")

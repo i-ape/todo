@@ -19,6 +19,8 @@ func init() {
 			i--
 		}
 	}
+	config.loadDotEnv(".env")
+
 }
 
 func main() {

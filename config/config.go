@@ -9,6 +9,31 @@ import (
 	"strings"
 )
 
+func init() {
+	loadDotEnv(".env") // load before vars
+}
+
+func loadDotEnv(filename string) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return // silently skip if no .env
+	}
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(parts[0])
+		val := strings.Trim(strings.TrimSpace(parts[1]), `"`)
+		os.Setenv(key, val) // inject into env
+	}
+}
+
 var (
 	// File paths
 	TaskFile       = getEnv("TODO_PATH", defaultTaskFile())

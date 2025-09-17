@@ -19,7 +19,7 @@ func init() {
 			i--
 		}
 	}
-	config.loadDotEnv(".env")
+	///config.loadDotEnv(".env")
 
 }
 

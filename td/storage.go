@@ -61,6 +61,7 @@ func SaveTasks(tasks []Task) error {
 	if err = os.WriteFile(filePath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write tasks file %s: %w", filePath, err)
 	}
+	fmt.Println(">>> Saving tasks to:", filePath)
 
 	return nil
 }

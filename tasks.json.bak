@@ -1,0 +1,28 @@
+[
+  {
+    "id": 2,
+    "text": "add more functionality,",
+    "completed": false
+  },
+  {
+    "id": 4,
+    "text": "Write documentation",
+    "completed": false
+  },
+  {
+    "id": 3,
+    "text": "wank",
+    "completed": false,
+    "recurring": "every friday",
+    "until": "2025-08-21",
+    "priority": "medium",
+    "tags": [
+      "@home"
+    ]
+  },
+  {
+    "id": 5,
+    "text": "make app pretty and quick",
+    "completed": false
+  }
+]

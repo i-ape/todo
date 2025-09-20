@@ -1,0 +1,7 @@
+path: tasks.json
+backup_path: tasks.json.bak
+path_mode: cwd
+output: text
+tui_theme: dark
+default_priority: medium
+max_tasks: 1000

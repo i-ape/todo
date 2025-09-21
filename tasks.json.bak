@@ -2,27 +2,51 @@
   {
     "id": 2,
     "text": "add more functionality,",
-    "completed": false
+    "completed": false,
+    "sticky": false,
+    "important": false
   },
   {
     "id": 4,
     "text": "Write documentation",
-    "completed": false
+    "completed": false,
+    "sticky": false,
+    "important": false
   },
   {
     "id": 3,
     "text": "wank",
     "completed": false,
-    "recurring": "every friday",
-    "until": "2025-08-21",
-    "priority": "medium",
     "tags": [
       "@home"
-    ]
+    ],
+    "priority": "medium",
+    "recurring": "every friday",
+    "sticky": false,
+    "important": false
   },
   {
     "id": 5,
     "text": "make app pretty and quick",
-    "completed": false
+    "completed": false,
+    "sticky": false,
+    "important": false
+  },
+  {
+    "id": 6,
+    "text": "debug test",
+    "completed": false,
+    "priority": "medium",
+    "sticky": false,
+    "important": false
+  },
+  {
+    "id": 7,
+    "text": "tasks.json test",
+    "completed": false,
+    "due_date": "2025-09-22",
+    "priority": "medium",
+    "sticky": false,
+    "important": false
   }
 ]

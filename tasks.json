@@ -2,7 +2,7 @@
   {
     "id": 2,
     "text": "add more functionality,",
-    "completed": false,
+    "completed": true,
     "sticky": false,
     "important": false
   },
@@ -45,6 +45,24 @@
     "text": "tasks.json test",
     "completed": true,
     "due_date": "2025-09-22",
+    "priority": "medium",
+    "sticky": false,
+    "important": false
+  },
+  {
+    "id": 8,
+    "text": "yaml test",
+    "completed": false,
+    "due_date": "2025-09-27",
+    "priority": "medium",
+    "sticky": false,
+    "important": false
+  },
+  {
+    "id": 9,
+    "text": "redo test",
+    "completed": true,
+    "due_date": "2025-09-27",
     "priority": "medium",
     "sticky": false,
     "important": false

@@ -5,9 +5,24 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
+
+	//"strconv"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
+
+var Cfg Config // global config struct
+
+type Config struct {
+	Path            string `yaml:"path"`
+	BackupPath      string `yaml:"backup_path"`
+	PathMode        string `yaml:"path_mode"`
+	Output          string `yaml:"output"`
+	TuiTheme        string `yaml:"tui_theme"`
+	DefaultPriority string `yaml:"default_priority"`
+	MaxTasks        int    `yaml:"max_tasks"`
+}
 
 var (
 	// File paths
@@ -30,24 +45,70 @@ func init() {
 	// Load .env before assigning config vars
 	loadDotEnv(".env")
 
-	// Debug: show what was read from env
-	fmt.Println(">>> ENV TODO_PATH:", os.Getenv("TODO_PATH"))
-	fmt.Println(">>> ENV TODO_BACKUP_PATH:", os.Getenv("TODO_BACKUP_PATH"))
-	fmt.Println(">>> ENV TODO_PATH_MODE:", os.Getenv("TODO_PATH_MODE"))
+	// Start with defaults
+	Cfg = Config{
+		Path:            defaultTaskFile(),
+		BackupPath:      defaultBackupTaskFile(),
+		PathMode:        "home",
+		Output:          "text",
+		TuiTheme:        "dark",
+		DefaultPriority: "medium",
+		MaxTasks:        1000,
+	}
 
-	// Assign values
-	TaskFile = getEnv("TODO_PATH", defaultTaskFile())
-	BackupTaskFile = getEnv("TODO_BACKUP_PATH", defaultBackupTaskFile())
-	PathMode = getEnv("TODO_PATH_MODE", "home")
+	// Load YAML overrides
+	loadYAMLConfig()
 
-	DisableFzf = getEnvBool("TODO_NO_FZF", false)
-	EnableTui = getEnvBool("TODO_TUI", false)
-	DefaultOutputFormat = getEnv("TODO_OUTPUT", "text")
-	TuiTheme = getEnv("TODO_TUI_THEME", "dark")
-	DefaultSortOrder = getEnv("TODO_SORT", "id")
-	DefaultPriority = getEnv("TODO_DEFAULT_PRIORITY", "medium")
-	FzfArgs = getEnv("TODO_FZF_ARGS", "--prompt='Task> '")
-	MaxTasks = getEnvInt("TODO_MAX_TASKS", 1000)
+	// Finally, apply env overrides
+	if v := os.Getenv("TODO_PATH"); v != "" {
+		Cfg.Path = v
+	}
+	if v := os.Getenv("TODO_BACKUP_PATH"); v != "" {
+		Cfg.BackupPath = v
+	}
+	if v := os.Getenv("TODO_PATH_MODE"); v != "" {
+		Cfg.PathMode = v
+	}
+}
+
+// ----------------------------
+// yaml loader
+// ----------------------------
+func loadYAMLConfig() {
+	cfgPath := filepath.Join(os.Getenv("HOME"), ".todo", "config.yaml")
+	data, err := os.ReadFile(cfgPath)
+	if err != nil {
+		return // silently skip if no file
+	}
+
+	var parsed Config
+	if err := yaml.Unmarshal(data, &parsed); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to parse %s: %v\n", cfgPath, err)
+		return
+	}
+
+	// Merge parsed values into global Cfg
+	if parsed.Path != "" {
+		Cfg.Path = parsed.Path
+	}
+	if parsed.BackupPath != "" {
+		Cfg.BackupPath = parsed.BackupPath
+	}
+	if parsed.PathMode != "" {
+		Cfg.PathMode = parsed.PathMode
+	}
+	if parsed.Output != "" {
+		Cfg.Output = parsed.Output
+	}
+	if parsed.TuiTheme != "" {
+		Cfg.TuiTheme = parsed.TuiTheme
+	}
+	if parsed.DefaultPriority != "" {
+		Cfg.DefaultPriority = parsed.DefaultPriority
+	}
+	if parsed.MaxTasks != 0 {
+		Cfg.MaxTasks = parsed.MaxTasks
+	}
 }
 
 // ----------------------------
@@ -94,49 +155,21 @@ func defaultBackupTaskFile() string {
 }
 
 // ----------------------------
-// Env helpers
-// ----------------------------
-func getEnv(key, fallback string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return strings.TrimSpace(value)
-	}
-	return fallback
-}
-
-func getEnvBool(key string, fallback bool) bool {
-	if value, exists := os.LookupEnv(key); exists {
-		v := strings.ToLower(strings.TrimSpace(value))
-		return v == "1" || v == "true" || v == "yes"
-	}
-	return fallback
-}
-
-func getEnvInt(key string, fallback int) int {
-	if value, exists := os.LookupEnv(key); exists {
-		if i, err := strconv.Atoi(strings.TrimSpace(value)); err == nil {
-			return i
-		}
-	}
-	return fallback
-}
-
-// ----------------------------
 // File path resolution
 // ----------------------------
 func GetTaskFilePath() string {
-	return resolvePath(TaskFile)
+	return resolvePath(Cfg.Path, Cfg.PathMode)
 }
 
 func GetBackupTaskFilePath() string {
-	return resolvePath(BackupTaskFile)
+	return resolvePath(Cfg.BackupPath, Cfg.PathMode)
 }
 
-func resolvePath(file string) string {
+func resolvePath(file, mode string) string {
 	var path string
 
-	switch PathMode {
+	switch mode {
 	case "cwd":
-		// Always relative to current working directory
 		if !filepath.IsAbs(file) {
 			if cwd, err := os.Getwd(); err == nil {
 				path = filepath.Join(cwd, file)
@@ -144,16 +177,12 @@ func resolvePath(file string) string {
 		} else {
 			path = file
 		}
-	default: // "home" or anything else
+	default:
 		path = file
 	}
 
-	fmt.Println(">>> Resolving TaskFile:", path, " PathMode:", PathMode)
-
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create directory %s: %v\n", dir, err)
-	}
+	_ = os.MkdirAll(dir, 0755)
 	return path
 }
 
@@ -161,14 +190,14 @@ func resolvePath(file string) string {
 // Other config accessors
 // ----------------------------
 func GetSortOrder() string {
-	order := getEnv("TODO_SORT", "id")
+	order := Cfg.Output // or add `SortOrder string` to Config struct
 	allowed := []string{"id", "due", "priority", "text"}
 	for _, a := range allowed {
 		if order == a {
 			return order
 		}
 	}
-	fmt.Fprintf(os.Stderr, "Invalid TODO_SORT: %s, falling back to 'id'\n", order)
+	fmt.Fprintf(os.Stderr, "Invalid sort order: %s, falling back to 'id'\n", order)
 	return "id"
 }
 

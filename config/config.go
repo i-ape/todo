@@ -5,24 +5,33 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	//"strconv"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
-var Cfg Config // global config struct
+// Cfg is the global configuration object.
+// All config values should come from here.
+var Cfg Config
 
+// Config holds all user-adjustable settings.
+// Defaults are applied first, then overridden by config.yaml,
+// and finally overridden by environment variables.
 type Config struct {
-	Path            string `yaml:"path"`
-	BackupPath      string `yaml:"backup_path"`
-	PathMode        string `yaml:"path_mode"`
-	Output          string `yaml:"output"`
-	TuiTheme        string `yaml:"tui_theme"`
-	DefaultPriority string `yaml:"default_priority"`
-	MaxTasks        int    `yaml:"max_tasks"`
+	Path            string `yaml:"path"`             // path to tasks.json
+	BackupPath      string `yaml:"backup_path"`      // path to backup file
+	PathMode        string `yaml:"path_mode"`        // "home" or "cwd"
+	Output          string `yaml:"output"`           // output format: text/json
+	SortOrder       string `yaml:"sort_order"`       // how tasks are sorted
+	TuiTheme        string `yaml:"tui_theme"`        // TUI theme: dark/light
+	DefaultPriority string `yaml:"default_priority"` // fallback priority
+	MaxTasks        int    `yaml:"max_tasks"`        // max tasks to keep
 }
+
+// ----------------------------
+// Init: load defaults, then YAML, then env
+// ----------------------------
 
 var (
 	// File paths
@@ -42,7 +51,7 @@ var (
 )
 
 func init() {
-	// Load .env before assigning config vars
+	// Load .env first, in case it sets config paths
 	loadDotEnv(".env")
 
 	// Start with defaults
@@ -51,15 +60,16 @@ func init() {
 		BackupPath:      defaultBackupTaskFile(),
 		PathMode:        "home",
 		Output:          "text",
+		SortOrder:       "id",
 		TuiTheme:        "dark",
 		DefaultPriority: "medium",
 		MaxTasks:        1000,
 	}
 
-	// Load YAML overrides
+	// Apply config.yaml overrides
 	loadYAMLConfig()
 
-	// Finally, apply env overrides
+	// Apply env overrides (highest precedence)
 	if v := os.Getenv("TODO_PATH"); v != "" {
 		Cfg.Path = v
 	}
@@ -69,10 +79,28 @@ func init() {
 	if v := os.Getenv("TODO_PATH_MODE"); v != "" {
 		Cfg.PathMode = v
 	}
+	if v := os.Getenv("TODO_OUTPUT"); v != "" {
+		Cfg.Output = v
+	}
+	if v := os.Getenv("TODO_SORT"); v != "" {
+		Cfg.SortOrder = v
+	}
+	if v := os.Getenv("TODO_TUI_THEME"); v != "" {
+		Cfg.TuiTheme = v
+	}
+	if v := os.Getenv("TODO_DEFAULT_PRIORITY"); v != "" {
+		Cfg.DefaultPriority = v
+	}
+	if v := os.Getenv("TODO_MAX_TASKS"); v != "" {
+		// simple atoi parse
+		if n, err := strconv.Atoi(v); err == nil {
+			Cfg.MaxTasks = n
+		}
+	}
 }
 
 // ----------------------------
-// yaml loader
+// YAML loader
 // ----------------------------
 func loadYAMLConfig() {
 	cfgPath := filepath.Join(os.Getenv("HOME"), ".todo", "config.yaml")
@@ -99,6 +127,9 @@ func loadYAMLConfig() {
 	}
 	if parsed.Output != "" {
 		Cfg.Output = parsed.Output
+	}
+	if parsed.SortOrder != "" {
+		Cfg.SortOrder = parsed.SortOrder
 	}
 	if parsed.TuiTheme != "" {
 		Cfg.TuiTheme = parsed.TuiTheme
@@ -132,7 +163,6 @@ func loadDotEnv(filename string) {
 		key := strings.TrimSpace(parts[0])
 		// trim spaces, quotes, and CRLF (\r)
 		val := strings.Trim(strings.TrimSpace(parts[1]), `"`)
-		val = strings.ReplaceAll(val, "\r", "")
 		os.Setenv(key, val)
 	}
 }
@@ -167,7 +197,6 @@ func GetBackupTaskFilePath() string {
 
 func resolvePath(file, mode string) string {
 	var path string
-
 	switch mode {
 	case "cwd":
 		if !filepath.IsAbs(file) {
@@ -180,29 +209,26 @@ func resolvePath(file, mode string) string {
 	default:
 		path = file
 	}
-
 	dir := filepath.Dir(path)
 	_ = os.MkdirAll(dir, 0755)
 	return path
 }
 
 // ----------------------------
-// Other config accessors
+// Accessors
 // ----------------------------
 func GetSortOrder() string {
-	order := Cfg.Output // or add `SortOrder string` to Config struct
 	allowed := []string{"id", "due", "priority", "text"}
 	for _, a := range allowed {
-		if order == a {
-			return order
+		if Cfg.SortOrder == a {
+			return a
 		}
 	}
-	fmt.Fprintf(os.Stderr, "Invalid sort order: %s, falling back to 'id'\n", order)
+	fmt.Fprintf(os.Stderr, "Invalid sort order: %s, falling back to 'id'\n", Cfg.SortOrder)
 	return "id"
 }
 
-func GetOutputFormat() string    { return DefaultOutputFormat }
-func GetTuiTheme() string        { return TuiTheme }
-func GetDefaultPriority() string { return DefaultPriority }
-func GetFzfArgs() []string       { return strings.Fields(FzfArgs) }
-func GetMaxTasks() int           { return MaxTasks }
+func GetOutputFormat() string    { return Cfg.Output }
+func GetTuiTheme() string        { return Cfg.TuiTheme }
+func GetDefaultPriority() string { return Cfg.DefaultPriority }
+func GetMaxTasks() int           { return Cfg.MaxTasks }

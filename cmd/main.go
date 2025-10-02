@@ -26,3 +26,4 @@ func init() {
 func main() {
 	HandleCommands()
 }
+

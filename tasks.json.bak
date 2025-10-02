@@ -61,7 +61,7 @@
   {
     "id": 9,
     "text": "redo test",
-    "completed": false,
+    "completed": true,
     "due_date": "2025-09-27",
     "priority": "medium",
     "sticky": false,

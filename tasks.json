@@ -70,7 +70,7 @@
   {
     "id": 10,
     "text": "make a game layer",
-    "completed": false,
+    "completed": true,
     "due_date": "2025-10-05",
     "priority": "medium",
     "sticky": false,

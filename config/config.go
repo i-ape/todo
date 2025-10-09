@@ -27,6 +27,13 @@ type Config struct {
 	TuiTheme        string `yaml:"tui_theme"`        // TUI theme: dark/light
 	DefaultPriority string `yaml:"default_priority"` // fallback priority
 	MaxTasks        int    `yaml:"max_tasks"`        // max tasks to keep
+
+	// Optional / future fields
+	EnableTui      bool `yaml:"enable_tui"`       // auto-launch TUI on startup
+	DisableFzf     bool `yaml:"disable_fzf"`      // disable fuzzy finder
+	AutoBackup     bool `yaml:"auto_backup"`      // automatically back up
+	ShowCompleted  bool `yaml:"show_completed"`   // list completed tasks
+	DefaultDueDays int  `yaml:"default_due_days"` // auto-due date offset
 }
 
 // ----------------------------
@@ -232,3 +239,8 @@ func GetOutputFormat() string    { return Cfg.Output }
 func GetTuiTheme() string        { return Cfg.TuiTheme }
 func GetDefaultPriority() string { return Cfg.DefaultPriority }
 func GetMaxTasks() int           { return Cfg.MaxTasks }
+func IsTuiEnabled() bool         { return Cfg.EnableTui }
+func IsFzfDisabled() bool        { return Cfg.DisableFzf }
+func ShouldAutoBackup() bool     { return Cfg.AutoBackup }
+func ShowCompletedTasks() bool   { return Cfg.ShowCompleted }
+func DefaultDueDays() int        { return Cfg.DefaultDueDays }

@@ -84,5 +84,14 @@
     "priority": "medium",
     "sticky": false,
     "important": false
+  },
+  {
+    "id": 12,
+    "text": "new go test, config changed, friday ",
+    "completed": false,
+    "due_date": "2025-10-17",
+    "priority": "medium",
+    "sticky": false,
+    "important": false
   }
 ]

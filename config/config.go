@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"testing"
 
 	"gopkg.in/yaml.v3"
 )
@@ -85,6 +86,15 @@ func init() {
 	// 5. Validate and print final config
 	validateConfig()
 	fmt.Printf("[config] Loaded configuration: %+v\n", Cfg)
+}
+
+func Load() error {
+	loadDotEnv(".env")
+	Cfg = defaults()
+	loadYAMLConfig()
+	applyEnvOverrides()
+	validateConfig()
+	return nil
 }
 
 // ----------------------------
@@ -280,15 +290,27 @@ func resolvePath(file, mode string) string {
 }
 
 // ----------------------------
+// testssssssssssssssssssssss
+// ----------------------------
+
+func TestYAMLLoad(t *testing.T) {
+	os.WriteFile("test.yaml", []byte("path: test.json\nmax_tasks: 42"), 0644)
+	loadYAMLConfig("test.yaml")
+	if Cfg.MaxTasks != 42 {
+		t.Fatalf("expected 42, got %d", Cfg.MaxTasks)
+	}
+}
+
+// ----------------------------
 // Accessors
 // ----------------------------
-func GetSortOrder() string        { return Cfg.SortOrder }
-func GetOutputFormat() string     { return Cfg.Output }
-func GetTuiTheme() string         { return Cfg.TuiTheme }
-func GetDefaultPriority() string  { return Cfg.DefaultPriority }
-func GetMaxTasks() int            { return Cfg.MaxTasks }
-func IsTuiEnabled() bool          { return Cfg.EnableTui }
-func IsFzfDisabled() bool         { return Cfg.DisableFzf }
-func ShouldAutoBackup() bool      { return Cfg.AutoBackup }
-func ShowCompletedTasks() bool    { return Cfg.ShowCompleted }
-func GetDefaultDueDays() int      { return Cfg.DefaultDueDays }
+func GetSortOrder() string       { return Cfg.SortOrder }
+func GetOutputFormat() string    { return Cfg.Output }
+func GetTuiTheme() string        { return Cfg.TuiTheme }
+func GetDefaultPriority() string { return Cfg.DefaultPriority }
+func GetMaxTasks() int           { return Cfg.MaxTasks }
+func IsTuiEnabled() bool         { return Cfg.EnableTui }
+func IsFzfDisabled() bool        { return Cfg.DisableFzf }
+func ShouldAutoBackup() bool     { return Cfg.AutoBackup }
+func ShowCompletedTasks() bool   { return Cfg.ShowCompleted }
+func GetDefaultDueDays() int     { return Cfg.DefaultDueDays }

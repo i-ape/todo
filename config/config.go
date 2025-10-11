@@ -88,6 +88,25 @@ func init() {
 	fmt.Printf("[config] Loaded configuration: %+v\n", Cfg)
 }
 
+func defaults() Config {
+	return Config{
+		Path:            defaultTaskFile(),
+		BackupPath:      defaultBackupTaskFile(),
+		PathMode:        "home",
+		Output:          "text",
+		SortOrder:       "id",
+		TuiTheme:        "dark",
+		DefaultPriority: "medium",
+		MaxTasks:        1000,
+		EnableTui:       false,
+		DisableFzf:      false,
+		AutoBackup:      true,
+		ShowCompleted:   false,
+		DefaultDueDays:  7,
+	}
+}
+
+
 func Load() error {
 	loadDotEnv(".env")
 	Cfg = defaults()

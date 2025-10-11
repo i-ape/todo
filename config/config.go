@@ -106,7 +106,6 @@ func defaults() Config {
 	}
 }
 
-
 func Load() error {
 	loadDotEnv(".env")
 	Cfg = defaults()
@@ -119,8 +118,14 @@ func Load() error {
 // ----------------------------
 // YAML loader
 // ----------------------------
-func loadYAMLConfig() {
-	cfgPath := filepath.Join(os.Getenv("HOME"), ".todo", "config.yaml")
+func loadYAMLConfig(paths ...string) {
+	var cfgPath string
+	if len(paths) > 0 {
+		cfgPath = paths[0] // allow custom path for testing
+	} else {
+		cfgPath = filepath.Join(os.Getenv("HOME"), ".todo", "config.yaml")
+	}
+
 	data, err := os.ReadFile(cfgPath)
 	if err != nil {
 		return // silently skip if no YAML file
@@ -314,11 +319,14 @@ func resolvePath(file, mode string) string {
 
 func TestYAMLLoad(t *testing.T) {
 	os.WriteFile("test.yaml", []byte("path: test.json\nmax_tasks: 42"), 0644)
+	defer os.Remove("test.yaml")
+
 	loadYAMLConfig("test.yaml")
 	if Cfg.MaxTasks != 42 {
 		t.Fatalf("expected 42, got %d", Cfg.MaxTasks)
 	}
 }
+
 
 // ----------------------------
 // Accessors

@@ -1,0 +1,45 @@
+# ~/.todo/config.yaml
+# --------------------------
+# Global configuration for your todo CLI app.
+# This file is read automatically at startup.
+# --------------------------
+
+# Path to your main tasks file.
+# Relative paths are resolved based on 'path_mode'.
+path: tasks.json
+
+# Backup file — created automatically before saving.
+backup_path: tasks.json.bak
+
+# Where to store/load the files:
+#   "cwd"  = current working directory (per project)
+#   "home" = fixed location in your home directory (~/.todo)
+path_mode: cwd
+
+# Default output format:
+#   "text"  = human-readable
+#   "json"  = machine-readable for scripts
+#   "table" = nice tabular output (future feature)
+output: text
+
+# UI theme for the TUI (text UI):
+#   "dark" or "light"
+tui_theme: dark
+
+# Default priority for new tasks (if not specified):
+#   "low", "medium", or "high"
+default_priority: medium
+
+# Maximum number of tasks before cleanup / trimming:
+max_tasks: 1000
+
+# How to sort tasks by default:
+#   "id", "due", "priority", or "text"
+sort_order: id
+
+# Future optional features:
+# enable_tui: false          # enable TUI automatically on startup
+# disable_fzf: false         # disable fuzzy-finder if true
+# default_due_days: 7        # auto-assign due date X days from creation
+# auto_backup: true          # create backups automatically
+# show_completed: false      # whether to list completed tasks in `todo list`

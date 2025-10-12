@@ -122,6 +122,8 @@ func loadYAMLConfig(paths ...string) {
 	var cfgPath string
 	if len(paths) > 0 {
 		cfgPath = paths[0] // allow custom path for testing
+	} else if envPath := os.Getenv("TODO_CONFIG_PATH"); envPath != "" {
+		cfgPath = envPath // ✅ NEW: allow .env override for config file
 	} else {
 		cfgPath = filepath.Join(os.Getenv("HOME"), ".todo", "config.yaml")
 	}
@@ -326,7 +328,6 @@ func TestYAMLLoad(t *testing.T) {
 		t.Fatalf("expected 42, got %d", Cfg.MaxTasks)
 	}
 }
-
 
 // ----------------------------
 // Accessors

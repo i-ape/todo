@@ -93,5 +93,14 @@
     "priority": "medium",
     "sticky": false,
     "important": false
+  },
+  {
+    "id": 13,
+    "text": "get rid of text after build in app ",
+    "completed": false,
+    "due_date": "2025-10-20",
+    "priority": "medium",
+    "sticky": false,
+    "important": false
   }
 ]

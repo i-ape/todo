@@ -250,60 +250,32 @@ func handleReset() {
 	}
 }
 func handleList() {
-	args := os.Args[2:]
-	opts := todo.ListFilterOptions{}
-	showNotes := false
+	path := config.GetTaskFilePath()
 
-	for _, arg := range args {
-		switch {
-		case arg == "--json":
-			opts.JSONOutput = true
-		case arg == "--done":
-			opts.ShowDone = true
-		case arg == "--pending":
-			opts.ShowPending = true
-		case arg == "--today":
-			opts.TodayOnly = true
-		case arg == "--overdue":
-			opts.OverdueOnly = true
-		case arg == "--notes", arg == "--verbose":
-			showNotes = true
-		case strings.HasPrefix(arg, "--tag="):
-			opts.Tags = strings.TrimPrefix(arg, "--tag=")
-		case strings.HasPrefix(arg, "--priority="):
-			opts.Priority = strings.TrimPrefix(arg, "--priority=")
-		}
-	}
-
-	tasks, err := todo.LoadTasks()
+	data, err := os.ReadFile(path)
 	if err != nil {
-		fmt.Println("❌ Failed to load tasks:", err)
-		return
-	}
-	filtered := todo.FilterTasks(tasks, opts)
-
-	// map parent ID → children
-	children := map[int][]todo.Task{}
-	parents := []todo.Task{}
-	for _, task := range filtered {
-		if task.ParentID > 0 {
-			children[task.ParentID] = append(children[task.ParentID], task)
-		} else {
-			parents = append(parents, task)
-		}
-	}
-
-	if opts.JSONOutput {
-		data, _ := json.MarshalIndent(filtered, "", "  ")
-		fmt.Println(string(data))
+		fmt.Println("No tasks found.")
 		return
 	}
 
-	for _, parent := range parents {
-		todo.PrintTask(parent, showNotes)
-		for _, child := range children[parent.ID] {
-			todo.PrintTaskIndented(child, showNotes)
+	var tasks []struct {
+		ID   int    `json:"id"`
+		Text string `json:"text"`
+		Done bool   `json:"done"`
+	}
+
+	if err := json.Unmarshal(data, &tasks); err != nil {
+		fmt.Println("Failed to read tasks:", err)
+		return
+	}
+
+	fmt.Println("Your tasks:")
+	for _, t := range tasks {
+		status := " "
+		if t.Done {
+			status = "x"
 		}
+		fmt.Printf("[%s] #%d %s\n", status, t.ID, t.Text)
 	}
 }
 

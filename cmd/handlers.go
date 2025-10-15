@@ -1,3 +1,4 @@
+/*
 package main
 
 import (
@@ -415,3 +416,4 @@ func handleHelp() {
 		fmt.Println("Unknown command. Try `todo help`")
 	}
 }
+*/

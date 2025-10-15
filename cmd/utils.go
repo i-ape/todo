@@ -4,6 +4,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"todo/config"
 	todo "todo/td"
 )
@@ -53,3 +55,40 @@ func selectSingleTask() (*todo.Task, error) {
 	}
 	return &selected[0], nil
 }
+
+// GetTaskByInput allows looking up a task by ID (numeric) or partial text match.
+func GetTaskByInput(input string) (*Task, error) {
+	tasks, err := LoadTasks()
+	if err != nil {
+		return nil, err
+	}
+
+	// Try numeric ID first
+	if id, err := strconv.Atoi(input); err == nil {
+		for _, t := range tasks {
+			if t.ID == id {
+				return &t, nil
+			}
+		}
+		return nil, fmt.Errorf("no task found with ID %d", id)
+	}
+
+	// Try fuzzy text match
+	lower := strings.ToLower(input)
+	for _, t := range tasks {
+		if strings.Contains(strings.ToLower(t.Text), lower) {
+			return &t, nil
+		}
+	}
+	return nil, fmt.Errorf("no task found matching text: %q", input)
+}
+
+func handleDue()     { fmt.Println("handleDue not yet implemented") }
+func handleDelete()  { fmt.Println("handleDelete not yet implemented") }
+func handleClear()   { fmt.Println("handleClear not yet implemented") }
+func handleReset()   { fmt.Println("handleReset not yet implemented") }
+func handleMove()    { fmt.Println("handleMove not yet implemented") }
+func handleNote()    { fmt.Println("handleNote not yet implemented") }
+func handleSubtask() { fmt.Println("handleSubtask not yet implemented") }
+func handlePick()    { fmt.Println("handlePick not yet implemented") }
+func handleHelp()    { fmt.Println("handleHelp not yet implemented") }

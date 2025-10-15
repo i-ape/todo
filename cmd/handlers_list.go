@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	todo "todo/td"
 	"todo/config"
+	todo "todo/td"
 )
 
 // --- List tasks ---

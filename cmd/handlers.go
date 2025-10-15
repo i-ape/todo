@@ -1,6 +1,6 @@
-/*
-package main
 
+package main
+/*
 import (
 	"encoding/json"
 	"fmt"
@@ -417,3 +417,5 @@ func handleHelp() {
 	}
 }
 */
+
+;

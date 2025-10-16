@@ -56,9 +56,9 @@ func selectSingleTask() (*todo.Task, error) {
 	return &selected[0], nil
 }
 
-// GetTaskByInput allows looking up a task by ID (numeric) or partial text match.
-func GetTaskByInput(input string) (*Task, error) {
-	tasks, err := LoadTasks()
+// --- Task lookup by ID or partial text ---
+func getTaskByInput(input string) (*todo.Task, error) {
+	tasks, err := todo.LoadTasks()
 	if err != nil {
 		return nil, err
 	}
@@ -82,13 +82,3 @@ func GetTaskByInput(input string) (*Task, error) {
 	}
 	return nil, fmt.Errorf("no task found matching text: %q", input)
 }
-
-func handleDue()     { fmt.Println("handleDue not yet implemented") }
-func handleDelete()  { fmt.Println("handleDelete not yet implemented") }
-func handleClear()   { fmt.Println("handleClear not yet implemented") }
-func handleReset()   { fmt.Println("handleReset not yet implemented") }
-func handleMove()    { fmt.Println("handleMove not yet implemented") }
-func handleNote()    { fmt.Println("handleNote not yet implemented") }
-func handleSubtask() { fmt.Println("handleSubtask not yet implemented") }
-func handlePick()    { fmt.Println("handlePick not yet implemented") }
-func handleHelp()    { fmt.Println("handleHelp not yet implemented") }

@@ -82,3 +82,13 @@ func getTaskByInput(input string) (*todo.Task, error) {
 	}
 	return nil, fmt.Errorf("no task found matching text: %q", input)
 }
+
+// containsArg checks if a given CLI argument is present (e.g. --json, --edit).
+func containsArg(flag string) bool {
+	for _, a := range os.Args {
+		if a == flag {
+			return true
+		}
+	}
+	return false
+}

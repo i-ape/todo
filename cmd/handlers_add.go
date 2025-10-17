@@ -28,7 +28,6 @@ func handleAdd() {
 			priority = arg
 		case strings.HasPrefix(arg, "every"):
 			recurring = strings.Join(args[i:], " ")
-			break
 		default:
 			dueParts = append(dueParts, args[i])
 		}

@@ -21,6 +21,7 @@ type Task struct {
 	Priority  string   `json:"priority,omitempty"`
 	Recurring string   `json:"recurring,omitempty"`
 	Notes     string   `json:"notes,omitempty"`
+	Due       string   `json:"due,omitempty"`
 	ParentID  int      `json:"parent_id,omitempty"`
 	Category  string   `json:"category,omitempty"`
 	Sticky    bool     `json:"sticky"`

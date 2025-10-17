@@ -75,7 +75,7 @@ func handleShow() {
 		return
 	}
 	id := os.Args[2]
-	task, err := todo.GetTaskByInput(id)
+	task, err := getTaskByInput(id)
 	if err != nil {
 		fail("%v", err)
 		return

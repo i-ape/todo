@@ -228,7 +228,7 @@ func handlePick() {
 // ==============================
 
 func handleHelp() {
-	fmt.Println(`
+	fmt.Print(`
 Todo CLI — Commands:
   add        Add a new task
   edit       Edit an existing task

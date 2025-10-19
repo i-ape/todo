@@ -1,4 +1,3 @@
-// cmd/handlers_list.go
 package main
 
 import (
@@ -13,6 +12,8 @@ import (
 // --- List tasks ---
 func handleList() {
 	path := config.GetTaskFilePath()
+	debug("Reading tasks from %s", path)
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		warn("No tasks found.")
@@ -30,6 +31,7 @@ func handleList() {
 		return
 	}
 
+	info("Found %d tasks:", len(tasks))
 	fmt.Println("🗒️  Your tasks:")
 	for _, t := range tasks {
 		status := " "
@@ -42,11 +44,12 @@ func handleList() {
 
 // --- Search tasks ---
 func handleSearch() {
-	if len(os.Args) < 3 {
+	query := strings.ToLower(strings.Join(os.Args[2:], " "))
+	if query == "" {
 		fail("Usage: todo search [keyword]")
 		return
 	}
-	query := strings.ToLower(strings.Join(os.Args[2:], " "))
+	debug("Searching tasks for keyword: %q", query)
 
 	tasks, err := todo.LoadTasks()
 	if err != nil {
@@ -54,7 +57,8 @@ func handleSearch() {
 		return
 	}
 
-	fmt.Printf("🔍 Search results for \"%s\":\n", query)
+	info("Searching %d tasks...", len(tasks))
+	fmt.Printf("🔍 Results for \"%s\":\n", query)
 	found := false
 	for _, t := range tasks {
 		if strings.Contains(strings.ToLower(t.Text), query) {
@@ -70,15 +74,20 @@ func handleSearch() {
 
 // --- Show task details ---
 func handleShow() {
-	if len(os.Args) < 3 {
+	id := arg(2)
+	if id == "" {
 		fail("Usage: todo show [id]")
 		return
 	}
-	id := os.Args[2]
+
+	debug("Showing details for task input: %s", id)
+
 	task, err := getTaskByInput(id)
 	if err != nil {
 		fail("%v", err)
 		return
 	}
+
+	info("Displaying details for #%d", task.ID)
 	todo.PrintTaskDetails(*task)
 }

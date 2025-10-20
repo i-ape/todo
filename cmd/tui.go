@@ -1,6 +1,4 @@
-// Package main contains the entry point for the TUI (Text User Interface) of the todo app.
-// It sets up the Bubble Tea model and program for interactive task management.
-
+// cmd/tui.go
 package main
 
 import (
@@ -13,10 +11,28 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/fatih/color"
+	"github.com/charmbracelet/lipgloss"
 )
 
-// model represents the state of the TUI, including tasks, cursor position, and input modes.
+// ==============================
+// 🎨 Styles
+// ==============================
+var (
+	titleStyle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00BFFF"))
+	errorStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF5555"))
+	successStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#50FA7B"))
+	helpStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#BBBBBB"))
+	cursorStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FFFF"))
+	taskStyle    = lipgloss.NewStyle().PaddingLeft(2)
+	stickyStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
+	dueStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500"))
+	tagStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#87CEEB"))
+	importantStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF69B4"))
+)
+
+// ==============================
+// 📦 Model
+// ==============================
 type model struct {
 	tasks       []todo.Task     // List of loaded tasks
 	cursor      int             // Current cursor position in the task list
@@ -34,39 +50,32 @@ type model struct {
 	viewMode    string          // View mode ("normal" or "sticky")
 }
 
-// NewModel initializes and returns a new model instance, loading tasks.
+// ==============================
+// 🧩 Init
+// ==============================
 func NewModel() model {
 	tasks, err := todo.LoadTasks()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load tasks: %v\n", err)
-		// Fallback to empty list instead of exiting
 		tasks = []todo.Task{}
 	}
 	input := textinput.New()
 	input.Focus()
 	return model{
 		tasks:       tasks,
-		cursor:      0,
 		state:       "normal",
 		input:       input,
-		err:         nil,
-		newTask:     todo.Task{},
-		quitting:    false,
-		filterTag:   "",
-		showPending: false,
-		showHelp:    false,
-		saveMsg:     "",
-		viewMode:    "normal", // sticky
+		viewMode:    "normal",
 	}
 }
 
-// Init initializes the model, returning the blink command for input.
-func (m model) Init() tea.Cmd {
-	return textinput.Blink
-}
+func (m model) Init() tea.Cmd { return textinput.Blink }
 
+// ==============================
+// 🔁 Update
+// ==============================
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Auto-clear temporary messages
+	// auto-clear messages
 	if !m.errTimeout.IsZero() && time.Now().After(m.errTimeout) {
 		m.err = nil
 		m.errTimeout = time.Time{}
@@ -76,676 +85,203 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.saveTimeout = time.Time{}
 	}
 
-	// Handle help screen input
-	if m.showHelp {
-		switch msg := msg.(type) {
-		case tea.KeyMsg:
-			switch msg.String() {
-			case "q", "esc", "h":
-				m.showHelp = false
-				return m, nil
-			}
-		}
-		return m, nil
-	}
-
-	// Process key messages in normal state
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
 			m.quitting = true
 			return m, tea.Quit
-		case "esc":
-			if m.state != "normal" {
-				m.state = "normal"
-				m.input.Reset()
-				m.err = nil
-				return m, nil
-			}
-		case "v":
-			// Toggle view mode
-			if m.viewMode == "normal" {
-				m.viewMode = "sticky"
-			} else {
-				m.viewMode = "normal"
-			}
-			m.cursor = 0
-			return m, nil
-		case "m":
-			// Toggle sticky status
-			if len(m.tasks) > 0 {
-				m.tasks[m.cursor].Sticky = !m.tasks[m.cursor].Sticky
-			}
-			return m, nil
 		case "h":
 			m.showHelp = !m.showHelp
 			return m, nil
-		case "i":
-			// Toggle importance and save
-			if len(m.tasks) > 0 {
-				m.tasks[m.cursor].Important = !m.tasks[m.cursor].Important
-				if err := todo.SaveTasks(m.tasks); err != nil {
-					m.err = err
-					m.errTimeout = time.Now().Add(3 * time.Second)
-				} else {
-					m.saveMsg = "Task importance toggled"
-					m.saveTimeout = time.Now().Add(2 * time.Second)
-				}
-			}
+		case "n":
+			m.state = "new_task"
+			m.input = textinput.New()
+			m.input.Placeholder = "➕ New task..."
+			m.input.Focus()
+			return m, textinput.Blink
+		case "esc":
+			m.state = "normal"
+			m.input.Reset()
 			return m, nil
-		case "o":
-			// Toggle pending filter
-			m.showPending = !m.showPending
-			m.cursor = 0
-			return m, nil
-		case "f":
-			// Enter filter tag mode if fzf enabled
-			if m.state == "normal" && !config.DisableFzf {
-				m.state = "filter_tag"
-				m.input = textinput.New()
-				m.input.Placeholder = "🔍 Enter tag to filter (or enter to clear):"
-				m.input.Focus()
-				return m, textinput.Blink
-			}
-		case "N":
-			// Enter note edit mode
-			if len(m.tasks) > 0 {
-				m.state = "edit_note"
-				m.input = textinput.New()
-				m.input.Placeholder = "📝 Enter note for task:"
-				m.input.SetValue(m.tasks[m.cursor].Notes)
-				m.input.Focus()
-				return m, textinput.Blink
-			}
-		case "M":
-			// Enter move mode if no filters active
-			if len(m.tasks) > 0 && m.filterTag == "" && !m.showPending && m.viewMode == "normal" {
-				m.state = "move_task"
-				m.input = textinput.New()
-				m.input.Placeholder = "⬆/⬇ Enter 'u' to move up, 'd' to move down:"
-				m.input.Focus()
-				return m, textinput.Blink
-			} else if len(m.tasks) > 0 {
-				m.err = fmt.Errorf("move is disabled in filtered views")
-				m.errTimeout = time.Now().Add(3 * time.Second)
-				return m, nil
-			}
-		}
-	}
-
-	// Handle input in non-normal states
-	if m.state != "normal" {
-		var cmd tea.Cmd
-		switch msg := msg.(type) {
-		case tea.KeyMsg:
-			switch msg.String() {
-			case "enter":
-				value := strings.TrimSpace(m.input.Value())
-				switch m.state {
-				case "new_task":
-					// Create new task if valid
-					if value != "" {
-						m.newTask = todo.Task{
-							ID:   todo.NextTaskID(m.tasks),
-							Text: value,
-						}
-						m.state = "new_priority"
-						m.input.Reset()
-						m.input.Placeholder = "🔥 Enter priority (high, medium, low, or enter for default):"
-						return m, textinput.Blink
-					}
-					m.err = fmt.Errorf("task name cannot be empty")
-					m.errTimeout = time.Now().Add(3 * time.Second)
-					m.state = "normal"
-					m.input.Reset()
-					return m, nil
-				case "new_priority":
-					// Set priority and proceed
-					priority := config.GetDefaultPriority()
-					if value != "" {
-						if todo.ParsePriority(value) == "" {
-							m.err = fmt.Errorf("invalid priority: %s", value)
-							m.errTimeout = time.Now().Add(3 * time.Second)
-							m.state = "normal"
-							m.input.Reset()
-							return m, nil
-						}
-						priority = value
-					}
-					m.newTask.Priority = todo.ParsePriority(priority)
-					m.state = "new_due"
-					m.input.Reset()
-					m.input.Placeholder = "📅 Enter due date (e.g., today, 2025-12-31, or enter to skip):"
-					return m, textinput.Blink
-				case "new_due":
-					// Set due date if valid
-					if value != "" {
-						dueDate, err := todo.ParseNaturalDate(value)
-						if err != nil {
-							m.err = err
-							m.errTimeout = time.Now().Add(3 * time.Second)
-							m.state = "normal"
-							m.input.Reset()
-							return m, nil
-						}
-						m.newTask.DueDate = dueDate
-					}
-					m.state = "new_tags"
-					m.input.Reset()
-					m.input.Placeholder = "🏷️ Enter tags (comma-separated, or enter to skip):"
-					return m, textinput.Blink
-				case "new_tags":
-					// Set tags, save new task
-					if value != "" {
-						m.newTask.Tags = todo.ParseTags(value)
-					}
-					m.tasks = append(m.tasks, m.newTask)
-					if err := todo.SaveTasks(m.tasks); err != nil {
-						m.err = err
-						m.errTimeout = time.Now().Add(3 * time.Second)
-					} else {
-						m.saveMsg = "Task saved successfully"
-						m.saveTimeout = time.Now().Add(2 * time.Second)
-					}
-					m.state = "normal"
-					m.input.Reset()
-					m.cursor = len(m.tasks) - 1
-					return m, nil
-				case "edit_text":
-					// Update text if valid
-					if value != "" {
-						m.tasks[m.cursor].Text = value
-						if err := todo.SaveTasks(m.tasks); err != nil {
-							m.err = err
-							m.errTimeout = time.Now().Add(3 * time.Second)
-						} else {
-							m.saveMsg = "Task updated successfully"
-							m.saveTimeout = time.Now().Add(2 * time.Second)
-						}
-					}
-					m.state = "normal"
-					m.input.Reset()
-					return m, nil
-				case "edit_due":
-					// Update due date if valid
-					if value != "" {
-						dueDate, err := todo.ParseNaturalDate(value)
-						if err != nil {
-							m.err = err
-							m.errTimeout = time.Now().Add(3 * time.Second)
-							m.state = "normal"
-							m.input.Reset()
-							return m, nil
-						}
-						m.tasks[m.cursor].DueDate = dueDate
-						if err := todo.SaveTasks(m.tasks); err != nil {
-							m.err = err
-							m.errTimeout = time.Now().Add(3 * time.Second)
-						} else {
-							m.saveMsg = "Due date updated successfully"
-							m.saveTimeout = time.Now().Add(2 * time.Second)
-						}
-					}
-					m.state = "normal"
-					m.input.Reset()
-					return m, nil
-				case "edit_tags":
-					// Update tags
-					if value != "" {
-						m.tasks[m.cursor].Tags = todo.ParseTags(value)
-						if err := todo.SaveTasks(m.tasks); err != nil {
-							m.err = err
-							m.errTimeout = time.Now().Add(3 * time.Second)
-						} else {
-							m.saveMsg = "Tags updated successfully"
-							m.saveTimeout = time.Now().Add(2 * time.Second)
-						}
-					}
-					m.state = "normal"
-					m.input.Reset()
-					return m, nil
-				case "edit_priority":
-					// Update priority if valid
-					if value != "" {
-						if todo.ParsePriority(value) == "" {
-							m.err = fmt.Errorf("invalid priority: %s", value)
-							m.errTimeout = time.Now().Add(3 * time.Second)
-							m.state = "normal"
-							m.input.Reset()
-							return m, nil
-						}
-						m.tasks[m.cursor].Priority = todo.ParsePriority(value)
-						if err := todo.SaveTasks(m.tasks); err != nil {
-							m.err = err
-							m.errTimeout = time.Now().Add(3 * time.Second)
-						} else {
-							m.saveMsg = "Priority updated successfully"
-							m.saveTimeout = time.Now().Add(2 * time.Second)
-						}
-					}
-					m.state = "normal"
-					m.input.Reset()
-					return m, nil
-				case "edit_note":
-					// Update note and save
-					m.tasks[m.cursor].Notes = value
-					if err := todo.SaveTasks(m.tasks); err != nil {
-						m.err = err
-						m.errTimeout = time.Now().Add(3 * time.Second)
-					} else {
-						m.saveMsg = "Note updated successfully"
-						m.saveTimeout = time.Now().Add(2 * time.Second)
-					}
-					m.state = "normal"
-					m.input.Reset()
-					return m, nil
-				case "move_task":
-					// Handle task move and save
-					if value == "u" && m.cursor > 0 {
-						m.tasks[m.cursor], m.tasks[m.cursor-1] = m.tasks[m.cursor-1], m.tasks[m.cursor]
-						m.cursor--
-					} else if value == "d" && m.cursor < len(m.visibleTopLevelTasks())-1 {
-						m.tasks[m.cursor], m.tasks[m.cursor+1] = m.tasks[m.cursor+1], m.tasks[m.cursor]
-						m.cursor++
-					} else if value != "" {
-						m.err = fmt.Errorf("invalid move direction: %s", value)
-						m.errTimeout = time.Now().Add(3 * time.Second)
-					}
-					if value == "u" || value == "d" {
-						if err := todo.SaveTasks(m.tasks); err != nil {
-							m.err = err
-							m.errTimeout = time.Now().Add(3 * time.Second)
-						} else {
-							m.saveMsg = "Task moved successfully"
-							m.saveTimeout = time.Now().Add(2 * time.Second)
-						}
-					}
-					m.state = "normal"
-					m.input.Reset()
-					return m, nil
-				case "filter_tag":
-					// Apply or clear tag filter
-					if value != "" {
-						m.filterTag = value
-					} else {
-						m.filterTag = "" // Clear filter
-					}
-					m.cursor = 0 // Reset cursor when filter changes
-					m.state = "normal"
-					m.input.Reset()
-					return m, nil
-				case "new_subtask":
-					// Add subtask if valid
-					if value != "" {
-						subtask := todo.Task{
-							ID:        todo.NextTaskID(m.tasks),
-							Text:      value,
-							ParentID:  m.tasks[m.cursor].ID,
-							Completed: false,
-							Priority:  todo.ParsePriority(config.GetDefaultPriority()),
-						}
-						m.tasks = append(m.tasks, subtask)
-						if err := todo.SaveTasks(m.tasks); err != nil {
-							m.err = err
-							m.errTimeout = time.Now().Add(3 * time.Second)
-						} else {
-							m.saveMsg = "Subtask added successfully"
-							m.saveTimeout = time.Now().Add(2 * time.Second)
-						}
-					}
-					m.state = "normal"
-					m.input.Reset()
-					return m, nil
-				}
-			default:
-				// Update input field
-				m.input, cmd = m.input.Update(msg)
-			}
-		}
-		return m, cmd
-	}
-
-	// Handle navigation and actions in normal state
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
 		case "j", "down":
-			if m.cursor < len(m.visibleTopLevelTasks())-1 {
+			if m.cursor < len(m.visibleTasks())-1 {
 				m.cursor++
 			}
 		case "k", "up":
 			if m.cursor > 0 {
 				m.cursor--
 			}
-		case " ", "enter":
-			// Toggle completion and handle recurrence
-			topLevel := m.visibleTopLevelTasks()
-			if len(topLevel) == 0 || m.cursor >= len(topLevel) {
+		case "enter", " ":
+			tasks := m.visibleTasks()
+			if len(tasks) == 0 {
 				return m, nil
 			}
-			selectedTask := topLevel[m.cursor]
-			for i, t := range m.tasks {
-				if t.ID == selectedTask.ID {
+			t := tasks[m.cursor]
+			for i := range m.tasks {
+				if m.tasks[i].ID == t.ID {
 					m.tasks[i].Completed = !m.tasks[i].Completed
-					if m.tasks[i].Completed && m.tasks[i].Recurring != "" {
-						newTask := m.tasks[i]
-						newTask.ID = todo.NextTaskID(m.tasks)
-						newTask.Completed = false
-						newTask.DueDate = todo.CalculateNextDueDate(newTask.DueDate, newTask.Recurring)
-						m.tasks = append(m.tasks, newTask)
-					}
 					break
 				}
 			}
-			if err := todo.SaveTasks(m.tasks); err != nil {
-				m.err = err
-				m.errTimeout = time.Now().Add(3 * time.Second)
-			} else {
-				m.saveMsg = "Task updated successfully"
-				m.saveTimeout = time.Now().Add(2 * time.Second)
-			}
-			return m, nil
-		case "x", "backspace":
-			// Delete task and subtasks
-			topLevel := m.visibleTopLevelTasks()
-			if len(topLevel) == 0 || m.cursor >= len(topLevel) {
-				return m, nil
-			}
-			selectedTask := topLevel[m.cursor]
-			for i, t := range m.tasks {
-				if t.ID == selectedTask.ID {
-					deletedID := m.tasks[i].ID
-					m.tasks = append(m.tasks[:i], m.tasks[i+1:]...)
-					// Remove subtasks
-					newTasks := []todo.Task{}
-					for _, task := range m.tasks {
-						if task.ParentID != deletedID {
-							newTasks = append(newTasks, task)
-						}
-					}
-					m.tasks = newTasks
-					break
-				}
-			}
-			if m.cursor >= len(m.visibleTasks()) && m.cursor > 0 {
-				m.cursor--
-			}
-			if err := todo.SaveTasks(m.tasks); err != nil {
-				m.err = err
-				m.errTimeout = time.Now().Add(3 * time.Second)
-			} else {
-				m.saveMsg = "Task and subtasks deleted successfully"
-				m.saveTimeout = time.Now().Add(2 * time.Second)
-			}
-			return m, nil
-		case "d":
-			// Enter due date edit mode
-			m.state = "edit_due"
-			m.input = textinput.New()
-			m.input.Placeholder = "📅 Enter new due date (e.g., today, 2025-12-31):"
-			m.input.SetValue(m.tasks[m.cursor].DueDate)
-			m.input.Focus()
-			return m, textinput.Blink
-		case "e":
-			// Enter text edit mode
-			m.state = "edit_text"
-			m.input = textinput.New()
-			m.input.Placeholder = "✏️ Edit task text:"
-			m.input.SetValue(m.tasks[m.cursor].Text)
-			m.input.Focus()
-			return m, textinput.Blink
-		case "n":
-			// Enter new task mode
-			m.state = "new_task"
-			m.input = textinput.New()
-			m.input.Placeholder = "➕ New task:"
-			m.input.Focus()
-			return m, textinput.Blink
-		case "t":
-			// Enter tags edit mode
-			m.state = "edit_tags"
-			m.input = textinput.New()
-			m.input.Placeholder = "🏷️ Enter tags (comma-separated):"
-			m.input.SetValue(strings.Join(m.tasks[m.cursor].Tags, ", "))
-			m.input.Focus()
-			return m, textinput.Blink
-		case "p":
-			// Enter priority edit mode
-			m.state = "edit_priority"
-			m.input = textinput.New()
-			m.input.Placeholder = "🔥 Enter priority (high, medium, low):"
-			m.input.SetValue(m.tasks[m.cursor].Priority)
-			m.input.Focus()
-			return m, textinput.Blink
-		case "s":
-			// Enter subtask add mode
-			m.state = "new_subtask"
-			m.input = textinput.New()
-			m.input.Placeholder = "📌 Subtask text:"
-			m.input.Focus()
-			return m, textinput.Blink
-		case "f":
-			// Handle fzf selection
-			if config.DisableFzf {
-				m.err = fmt.Errorf("fzf is disabled")
-				m.errTimeout = time.Now().Add(3 * time.Second)
-				return m, nil
-			}
-			selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
-			if err != nil {
-				m.err = err
-				m.errTimeout = time.Now().Add(3 * time.Second)
-				return m, nil
-			}
-			if len(selected) == 0 {
-				m.err = fmt.Errorf("no task selected")
-				m.errTimeout = time.Now().Add(3 * time.Second)
-				return m, nil
-			}
-			for i, task := range m.tasks {
-				if task.ID == selected[0].ID {
-					m.cursor = i
-					m.err = nil
-					break
-				}
-			}
-			return m, nil
-		case "r":
-			// Sort tasks and save
-			todo.SortTasks(m.tasks, config.GetSortOrder())
-			if err := todo.SaveTasks(m.tasks); err != nil {
-				m.err = err
-				m.errTimeout = time.Now().Add(3 * time.Second)
-			} else {
-				m.saveMsg = "Tasks sorted successfully"
-				m.saveTimeout = time.Now().Add(2 * time.Second)
-			}
-			return m, nil
-		case "c":
-			// Clear error message
-			m.err = nil
-			m.errTimeout = time.Time{}
-			return m, nil
+			todo.SaveTasks(m.tasks)
+			m.saveMsg = "Task toggled"
+			m.saveTimeout = time.Now().Add(2 * time.Second)
 		}
 	}
+
+	if m.state == "new_task" {
+		var cmd tea.Cmd
+		m.input, cmd = m.input.Update(msg)
+		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
+			text := strings.TrimSpace(m.input.Value())
+			if text == "" {
+				m.err = fmt.Errorf("task cannot be empty")
+				m.errTimeout = time.Now().Add(3 * time.Second)
+				m.state = "normal"
+				m.input.Reset()
+				return m, nil
+			}
+			task := todo.Task{ID: todo.NextTaskID(m.tasks), Text: text}
+			m.tasks = append(m.tasks, task)
+			_ = todo.SaveTasks(m.tasks)
+			m.saveMsg = "Task added"
+			m.saveTimeout = time.Now().Add(2 * time.Second)
+			m.state = "normal"
+			m.input.Reset()
+		}
+		return m, cmd
+	}
+
 	return m, nil
 }
 
-// visibleTasks returns tasks filtered by tag and completion status
-func (m model) visibleTasks() []todo.Task {
-	var result []todo.Task
-	for _, task := range m.tasks {
-		if m.viewMode == "sticky" && !task.Sticky {
-			continue
-		}
-		if m.showPending && task.Completed {
-			continue
-		}
-		if m.filterTag != "" {
-			hasTag := false
-			for _, tag := range task.Tags {
-				if tag == m.filterTag {
-					hasTag = true
-					break
-				}
-			}
-			if !hasTag {
-				continue
-			}
-		}
-		result = append(result, task)
-	}
-	return result
-}
-
-// visibleTopLevelTasks returns only top-level tasks from visibleTasks
-func (m model) visibleTopLevelTasks() []todo.Task {
-	var result []todo.Task
-	for _, task := range m.visibleTasks() {
-		if task.ParentID == 0 {
-			result = append(result, task)
-		}
-	}
-	return result
-}
-
-// View renders the current view of the TUI.
+// ==============================
+// 👁️ View
+// ==============================
 func (m model) View() string {
 	if m.quitting {
-		return "Goodbye 👋\n"
+		return "👋 Goodbye!\n"
 	}
 	if m.showHelp {
 		return m.helpView()
 	}
+
 	var b strings.Builder
-	if m.err != nil {
-		b.WriteString(color.RedString("Error: %v\n\n", m.err))
+	b.WriteString(m.headerView())
+	b.WriteString("\n")
+
+	if m.state == "new_task" {
+		b.WriteString(fmt.Sprintf("📝 %s\n\n", m.input.View()))
 	}
-	if m.saveMsg != "" {
-		b.WriteString(color.GreenString("%s\n\n", m.saveMsg))
-	}
-	if m.viewMode == "sticky" && len(m.visibleTasks()) == 0 {
-		b.WriteString("📌 No sticky tasks. Press 'm' to mark a task as sticky.\n\n")
-	} else if len(m.visibleTasks()) == 0 {
-		b.WriteString("📋 No tasks yet. Press 'n' to add one.\n\n")
+
+	tasks := m.visibleTasks()
+	if len(tasks) == 0 {
+		b.WriteString(helpStyle.Render("No tasks yet — press 'n' to add one.\n"))
 	} else {
-		b.WriteString("📋 Tasks:\n\n")
-		taskMap := make(map[int][]todo.Task)
-		var topLevel []todo.Task
-		for _, task := range m.visibleTasks() {
-			if task.ParentID == 0 {
-				topLevel = append(topLevel, task)
-			} else {
-				taskMap[task.ParentID] = append(taskMap[task.ParentID], task)
-			}
-		}
-		for i, task := range topLevel {
+		for i, t := range tasks {
 			cursor := "  "
 			if i == m.cursor {
-				cursor = "▶ "
+				cursor = cursorStyle.Render("▶ ")
 			}
-			status := color.CyanString("[ ]")
-			if task.Completed {
-				status = color.GreenString("[✓]")
-			} else if task.DueDate != "" && todo.IsOverdue(task.DueDate) {
-				status = color.RedString("[✗]")
+			status := "[ ]"
+			if t.Completed {
+				status = successStyle.Render("[✓]")
 			}
-			label := task.Text
-			if task.Sticky {
-				label = "📌 " + label
+			line := fmt.Sprintf("%s %s %s", cursor, status, t.Text)
+			if t.Sticky {
+				line += stickyStyle.Render(" 📌")
 			}
-			if task.DueDate != "" {
-				label += color.YellowString(" 📅 %s", task.DueDate)
+			if t.DueDate != "" {
+				line += dueStyle.Render(fmt.Sprintf(" 📅 %s", t.DueDate))
 			}
-			if len(task.Tags) > 0 {
-				label += " 🏷️ " + strings.Join(task.Tags, ", ")
+			if len(t.Tags) > 0 {
+				line += tagStyle.Render(" 🏷️ " + strings.Join(t.Tags, ", "))
 			}
-			switch task.Priority {
-			case "high":
-				label += color.RedString(" 🔥")
-			case "low":
-				label += color.BlueString(" ⬇")
+			if t.Important {
+				line += importantStyle.Render(" ❗")
 			}
-			b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, status, label))
-			if task.Notes != "" {
-				b.WriteString(fmt.Sprintf("      📝 %s\n", task.Notes))
-			}
-			for _, subtask := range taskMap[task.ID] {
-				subStatus := color.CyanString("[ ]")
-				if subtask.Completed {
-					subStatus = color.GreenString("[✓]")
-				} else if subtask.DueDate != "" && todo.IsOverdue(subtask.DueDate) {
-					subStatus = color.RedString("[✗]")
-				}
-				subLabel := subtask.Text
-				if subtask.Sticky {
-					subLabel = "📌 " + subLabel
-				}
-				if subtask.DueDate != "" {
-					subLabel += color.YellowString(" 📅 %s", subtask.DueDate)
-				}
-				if len(subtask.Tags) > 0 {
-					subLabel += " 🏷️ " + strings.Join(subtask.Tags, ", ")
-				}
-				switch subtask.Priority {
-				case "high":
-					subLabel += color.RedString(" 🔥")
-				case "low":
-					subLabel += color.BlueString(" ⬇")
-				}
-				b.WriteString(fmt.Sprintf("    ↳ %s %s\n", subStatus, subLabel))
-				if subtask.Notes != "" {
-					b.WriteString(fmt.Sprintf("        📝 %s\n", subtask.Notes))
-				}
-			}
+			b.WriteString(taskStyle.Render(line) + "\n")
 		}
 	}
+
+	b.WriteString("\n")
+	b.WriteString(m.statusView())
+	return b.String()
+}
+
+// ==============================
+// 🧭 Subviews
+// ==============================
+func (m model) headerView() string {
+	header := titleStyle.Render("🗒️ Todo TUI")
 	if m.filterTag != "" {
-		b.WriteString(fmt.Sprintf("\nFiltered by tag: %s\n", m.filterTag))
+		header += tagStyle.Render(fmt.Sprintf("  [filter: %s]", m.filterTag))
 	}
 	if m.showPending {
-		b.WriteString("Showing only pending tasks\n")
+		header += dueStyle.Render("  [pending only]")
 	}
-	b.WriteString("\n↑/↓ or j/k: navigate, [enter]: toggle, [x]: delete, [n]: new, [d]: due date, [e]: edit, [t]: tags, [p]: priority, [s]: subtask, [f]: filter/fzf, [o]: toggle pending, [r]: sort, [h]: help, [m]: toggle sticky, [v]: sticky view, [N]: note, [M]: move, [q]: quit\n")
-	return b.String()
+	if m.viewMode == "sticky" {
+		header += stickyStyle.Render("  [sticky view]")
+	}
+	return header
 }
 
-// helpView renders the help screen.
+func (m model) statusView() string {
+	switch {
+	case m.err != nil:
+		return errorStyle.Render(fmt.Sprintf("Error: %v\n", m.err))
+	case m.saveMsg != "":
+		return successStyle.Render(fmt.Sprintf("%s\n", m.saveMsg))
+	default:
+		return helpStyle.Render("↑/↓ navigate  ⏎ toggle  n new  h help  q quit\n")
+	}
+}
+
+// ==============================
+// ℹ️ Help
+// ==============================
 func (m model) helpView() string {
-	var b strings.Builder
-	b.WriteString(color.CyanString("📋 To-Do List Help\n\n"))
-	b.WriteString("Keybindings:\n")
-	b.WriteString("  ↑/↓ or j/k: Move cursor up/down\n")
-	b.WriteString("  enter or space: Toggle task completion\n")
-	b.WriteString("  x or backspace: Delete task\n")
-	b.WriteString("  n: Add new task\n")
-	b.WriteString("  d: Edit due date\n")
-	b.WriteString("  e: Edit task text\n")
-	b.WriteString("  t: Edit tags\n")
-	b.WriteString("  p: Edit priority\n")
-	b.WriteString("  s: Add subtask\n")
-	b.WriteString("  f: Filter by tag (or fzf select if enabled)\n")
-	b.WriteString("  o: Toggle showing only pending tasks\n")
-	b.WriteString("  r: Sort tasks\n")
-	b.WriteString("  c: Clear error\n")
-	b.WriteString("  h: Show/hide this help\n")
-	b.WriteString("  i: Toggle task importance\n")
-	b.WriteString("  m: Toggle sticky status\n")
-	b.WriteString("  v: Toggle sticky view\n")
-	b.WriteString("  N: Add/edit task note\n")
-	b.WriteString("  M: Move task up/down\n")
-	b.WriteString("  q or ctrl+c: Quit\n")
-	b.WriteString("  esc: Cancel input (in editing modes)\n\n")
-	b.WriteString("Configuration (Environment Variables):\n")
-	b.WriteString("  TODO_DEFAULT_PRIORITY: Set default priority (high, medium, low; default: medium)\n")
-	b.WriteString("  TODO_DISABLE_FZF: Set to 'true' to disable fzf (default: false)\n")
-	b.WriteString("  TODO_SORT_ORDER: Set sort order (due, priority, text; default: due)\n\n")
-	b.WriteString("Press h, q, or esc to return to tasks")
-	return b.String()
+	return lipgloss.NewStyle().Padding(1, 2).Render(
+		titleStyle.Render("📘 Todo Help\n\n") +
+			"↑/↓ or j/k  Move cursor\n" +
+			"⏎ or space  Toggle completion\n" +
+			"n           Add new task\n" +
+			"h           Show/hide help\n" +
+			"q, ctrl+c   Quit\n" +
+			"esc         Cancel input\n",
+	)
 }
 
-// StartTUI starts the Bubble Tea program for the TUI.
+// ==============================
+// 🧠 Helpers
+// ==============================
+func (m model) visibleTasks() []todo.Task {
+	var result []todo.Task
+	for _, t := range m.tasks {
+		if m.showPending && t.Completed {
+			continue
+		}
+		if m.filterTag != "" {
+			found := false
+			for _, tag := range t.Tags {
+				if tag == m.filterTag {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+		result = append(result, t)
+	}
+	return result
+}
+
+// ==============================
+// 🚀 Entry point
+// ==============================
 func StartTUI() {
 	p := tea.NewProgram(NewModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {

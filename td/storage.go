@@ -106,12 +106,15 @@ func GetTaskByID(id int) (*Task, error) {
 }
 
 // RemoveTaskByID removes a task with a matching ID from the slice.
-func RemoveTaskByID(tasks []Task, id int) []Task {
+func RemoveTaskByID(tasks []Task, id int) ([]Task, *Task) {
+	var deleted *Task
 	newTasks := make([]Task, 0, len(tasks))
 	for _, t := range tasks {
-		if t.ID != id {
-			newTasks = append(newTasks, t)
+		if t.ID == id {
+			deleted = &t
+			continue
 		}
+		newTasks = append(newTasks, t)
 	}
-	return newTasks
+	return newTasks, deleted
 }

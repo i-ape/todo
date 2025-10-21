@@ -124,7 +124,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			t := m.visibleTasks()[m.cursor]
-			m.tasks = todo.RemoveTaskByID(m.tasks, t.ID)
+			m.tasks, _ = todo.RemoveTaskByID(m.tasks, t.ID)
 			_ = todo.SaveTasks(m.tasks)
 			m.saveMsg = "Task deleted"
 			m.saveTimeout = time.Now().Add(2 * time.Second)

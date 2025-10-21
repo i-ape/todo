@@ -207,6 +207,7 @@ func EditTaskText(idOrText, newText string) error {
 	return SaveTasks(tasks)
 }
 
+
 // SearchTasks prints tasks that match the keyword.
 func SearchTasks(keyword string) {
 	tasks, err := LoadTasks()

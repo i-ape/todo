@@ -6,7 +6,8 @@ import (
 	"os"
 	"strings"
 	"time"
-	"todo/config"
+
+	//"todo/config"
 	todo "todo/td"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -18,15 +19,15 @@ import (
 // 🎨 Styles
 // ==============================
 var (
-	titleStyle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00BFFF"))
-	errorStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF5555"))
-	successStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#50FA7B"))
-	helpStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#BBBBBB"))
-	cursorStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FFFF"))
-	taskStyle    = lipgloss.NewStyle().PaddingLeft(2)
-	stickyStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
-	dueStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500"))
-	tagStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#87CEEB"))
+	titleStyle     = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00BFFF"))
+	errorStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF5555"))
+	successStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#50FA7B"))
+	helpStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#BBBBBB"))
+	cursorStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#00FFFF"))
+	taskStyle      = lipgloss.NewStyle().PaddingLeft(2)
+	stickyStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFD700"))
+	dueStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFA500"))
+	tagStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("#87CEEB"))
 	importantStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF69B4"))
 )
 
@@ -34,13 +35,13 @@ var (
 // 📦 Model
 // ==============================
 type model struct {
-	tasks       []todo.Task     // List of loaded tasks
-	cursor      int             // Current cursor position in the task list
-	quitting    bool            // Flag to indicate if the TUI is quitting
-	err         error           // Current error, if any
-	errTimeout  time.Time       // Time when the error should auto-clear
-	state       string          // Current TUI state (e.g., "normal", "new_task")
-	newTask     todo.Task       // Temporary task struct for creation
+	tasks      []todo.Task // List of loaded tasks
+	cursor     int         // Current cursor position in the task list
+	quitting   bool        // Flag to indicate if the TUI is quitting
+	err        error       // Current error, if any
+	errTimeout time.Time   // Time when the error should auto-clear
+	state      string      // Current TUI state (e.g., "normal", "new_task")
+	//newTask     todo.Task       // Temporary task struct for creation
 	input       textinput.Model // Input field for user entries
 	filterTag   string          // Tag filter for tasks
 	showPending bool            // Flag to show only pending tasks
@@ -62,10 +63,10 @@ func NewModel() model {
 	input := textinput.New()
 	input.Focus()
 	return model{
-		tasks:       tasks,
-		state:       "normal",
-		input:       input,
-		viewMode:    "normal",
+		tasks:    tasks,
+		state:    "normal",
+		input:    input,
+		viewMode: "normal",
 	}
 }
 
@@ -112,6 +113,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor > 0 {
 				m.cursor--
 			}
+		case "t":
+			m.state = "filter_tag"
+			m.input = textinput.New()
+			m.input.Placeholder = "Filter by tag..."
+			m.input.Focus()
+			return m, textinput.Blink
+		case "d":
+			if len(m.tasks) == 0 {
+				return m, nil
+			}
+			t := m.visibleTasks()[m.cursor]
+			m.tasks = todo.RemoveTaskByID(m.tasks, t.ID)
+			_ = todo.SaveTasks(m.tasks)
+			m.saveMsg = "Task deleted"
+			m.saveTimeout = time.Now().Add(2 * time.Second)
+		case "e":
+			if len(m.tasks) == 0 {
+				return m, nil
+			}
+			t := m.visibleTasks()[m.cursor]
+			m.state = "edit_task"
+			m.input = textinput.New()
+			m.input.SetValue(t.Text)
+			m.input.Focus()
+			return m, textinput.Blink
+
 		case "enter", " ":
 			tasks := m.visibleTasks()
 			if len(tasks) == 0 {

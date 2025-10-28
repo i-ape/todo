@@ -8,7 +8,7 @@ import (
 	"todo/config"
 )
 
-// LoadTasks loads tasks from the JSON file, returning empty if not found
+// LoadTasks loads tasks from the JSON file.
 func LoadTasks() ([]Task, error) {
 	filePath := config.GetTaskFilePath()
 	data, err := os.ReadFile(filePath)
@@ -24,7 +24,7 @@ func LoadTasks() ([]Task, error) {
 		return nil, fmt.Errorf("failed to unmarshal tasks: %w", err)
 	}
 
-	// Optional validation: Check for duplicate IDs
+	// Basic sanity check
 	idMap := make(map[int]struct{})
 	for _, task := range tasks {
 		if _, exists := idMap[task.ID]; exists {
@@ -36,12 +36,12 @@ func LoadTasks() ([]Task, error) {
 	return tasks, nil
 }
 
-// SaveTasks saves tasks to the JSON file with backup
+// SaveTasks saves tasks to the JSON file with backup.
 func SaveTasks(tasks []Task) error {
 	filePath := config.GetTaskFilePath()
 	backupPath := config.GetBackupTaskFilePath()
 
-	// Create backup if file exists
+	// Backup if file exists
 	if _, err := os.Stat(filePath); err == nil {
 		data, err := os.ReadFile(filePath)
 		if err != nil {
@@ -52,7 +52,6 @@ func SaveTasks(tasks []Task) error {
 		}
 	}
 
-	// Marshal and save
 	data, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal tasks: %w", err)
@@ -61,12 +60,12 @@ func SaveTasks(tasks []Task) error {
 	if err = os.WriteFile(filePath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write tasks file %s: %w", filePath, err)
 	}
-	fmt.Println(">>> Saving tasks to:", filePath)
 
+	fmt.Println(">>> Saving tasks to:", filePath)
 	return nil
 }
 
-// ResetTasks deletes the tasks file and backup
+// ResetTasks deletes both the task file and its backup.
 func ResetTasks() error {
 	filePath := config.GetTaskFilePath()
 	backupPath := config.GetBackupTaskFilePath()
@@ -78,43 +77,4 @@ func ResetTasks() error {
 		return fmt.Errorf("failed to delete backup file %s: %w", backupPath, err)
 	}
 	return nil
-}
-
-// NextTaskID calculates the next available task ID
-func NextTaskID(tasks []Task) int {
-	maxID := 0
-	for _, task := range tasks {
-		if task.ID > maxID {
-			maxID = task.ID
-		}
-	}
-	return maxID + 1
-}
-
-// GetTaskByID retrieves a task by ID
-func GetTaskByID(id int) (*Task, error) {
-	tasks, err := LoadTasks()
-	if err != nil {
-		return nil, err
-	}
-	for _, task := range tasks {
-		if task.ID == id {
-			return &task, nil
-		}
-	}
-	return nil, fmt.Errorf("task with ID %d not found", id)
-}
-
-// RemoveTaskByID removes a task with a matching ID from the slice.
-func RemoveTaskByID(tasks []Task, id int) ([]Task, *Task) {
-	var deleted *Task
-	newTasks := make([]Task, 0, len(tasks))
-	for _, t := range tasks {
-		if t.ID == id {
-			deleted = &t
-			continue
-		}
-		newTasks = append(newTasks, t)
-	}
-	return newTasks, deleted
 }

@@ -156,20 +156,6 @@ func ParseDateTimeDurationRepeat(input string) (date, t, dur, recurring, until s
 	return d, t, dur, recurring, until, err
 }
 
-// UpdateTaskByID updates a task by ID using the provided function
-func UpdateTaskByID(id int, updateFn func(*Task)) error {
-	tasks, err := LoadTasks()
-	if err != nil {
-		return err
-	}
-	for i := range tasks {
-		if tasks[i].ID == id {
-			updateFn(&tasks[i])
-			return SaveTasks(tasks)
-		}
-	}
-	return fmt.Errorf("task not found")
-}
 
 // PromptMultiline prompts for multiline input using editor
 func PromptMultiline(prompt, initial string) string {
@@ -286,43 +272,4 @@ func TruncateString(s string, maxLen int) string {
 		return s[:maxLen-3] + "..."
 	}
 	return s
-}
-
-// NextTaskID calculates the next available task ID
-func NextTaskID(tasks []Task) int {
-	maxID := 0
-	for _, task := range tasks {
-		if task.ID > maxID {
-			maxID = task.ID
-		}
-	}
-	return maxID + 1
-}
-
-// GetTaskByID retrieves a task by ID
-func GetTaskByID(id int) (*Task, error) {
-	tasks, err := LoadTasks()
-	if err != nil {
-		return nil, err
-	}
-	for _, task := range tasks {
-		if task.ID == id {
-			return &task, nil
-		}
-	}
-	return nil, fmt.Errorf("task with ID %d not found", id)
-}
-
-// RemoveTaskByID removes a task with a matching ID from the slice.
-func RemoveTaskByID(tasks []Task, id int) ([]Task, *Task) {
-	var deleted *Task
-	newTasks := make([]Task, 0, len(tasks))
-	for _, t := range tasks {
-		if t.ID == id {
-			deleted = &t
-			continue
-		}
-		newTasks = append(newTasks, t)
-	}
-	return newTasks, deleted
 }

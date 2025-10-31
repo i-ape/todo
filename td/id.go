@@ -85,3 +85,24 @@ func MustGetTaskIndex(tasks []Task, id int) int {
 	}
 	panic(fmt.Sprintf("task with ID %d not found", id))
 }
+
+// ReplaceTaskByID replaces a task in the slice and returns a new slice.
+func ReplaceTaskByID(tasks []Task, updated Task) []Task {
+	for i, t := range tasks {
+		if t.ID == updated.ID {
+			tasks[i] = updated
+			break
+		}
+	}
+	return tasks
+}
+
+// HasTaskID checks if a task with the given ID exists.
+func HasTaskID(tasks []Task, id int) bool {
+	for _, t := range tasks {
+		if t.ID == id {
+			return true
+		}
+	}
+	return false
+}

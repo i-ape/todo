@@ -2,7 +2,8 @@
 package main
 
 import (
-	"fmt"
+	"errors"
+	"os"
 	"strconv"
 	"strings"
 	"todo/config"
@@ -11,23 +12,32 @@ import (
 
 // --- Edit task text ---
 func handleEdit() {
-	task, err := selectSingleTask()
+	if len(os.Args) < 4 {
+		fail("Usage: todo edit [id] [new text]")
+		return
+	}
+
+	id, err := parseID(os.Args[2])
 	if err != nil {
-		fail("Error selecting task: %v", err)
+		fail("Invalid ID: %v", err)
 		return
 	}
 
-	newText := todo.PromptInput(fmt.Sprintf("✏️ Edit task \"%s\"", task.Text), task.Text)
-	if newText == "" {
-		warn("No changes made.")
-		return
-	}
+	newText := os.Args[3]
 
-	if err := todo.EditTaskText(strconv.Itoa(task.ID), newText); err != nil {
+	err = todo.UpdateTaskByID(id, func(t *todo.Task) {
+		t.Text = newText
+	})
+	if err != nil {
+		if errors.Is(err, todo.ErrTaskNotFound) {
+			warn("Task with ID %d not found.", id)
+			return
+		}
 		fail("Failed to edit task: %v", err)
 		return
 	}
-	success("Task updated.")
+
+	info("✅ Task #%d updated successfully!", id)
 }
 
 // --- Mark as done ---

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -9,11 +10,8 @@ import (
 	todo "todo/td"
 )
 
-// --- List tasks ---
 func handleList() {
 	path := config.GetTaskFilePath()
-	debug("Reading tasks from %s", path)
-
 	data, err := os.ReadFile(path)
 	if err != nil {
 		warn("No tasks found.")
@@ -31,7 +29,6 @@ func handleList() {
 		return
 	}
 
-	info("Found %d tasks:", len(tasks))
 	fmt.Println("🗒️  Your tasks:")
 	for _, t := range tasks {
 		status := " "
@@ -42,14 +39,12 @@ func handleList() {
 	}
 }
 
-// --- Search tasks ---
 func handleSearch() {
-	query := strings.ToLower(strings.Join(os.Args[2:], " "))
-	if query == "" {
+	if len(os.Args) < 3 {
 		fail("Usage: todo search [keyword]")
 		return
 	}
-	debug("Searching tasks for keyword: %q", query)
+	query := strings.ToLower(strings.Join(os.Args[2:], " "))
 
 	tasks, err := todo.LoadTasks()
 	if err != nil {
@@ -57,8 +52,7 @@ func handleSearch() {
 		return
 	}
 
-	info("Searching %d tasks...", len(tasks))
-	fmt.Printf("🔍 Results for \"%s\":\n", query)
+	fmt.Printf("🔍 Search results for \"%s\":\n", query)
 	found := false
 	for _, t := range tasks {
 		if strings.Contains(strings.ToLower(t.Text), query) {
@@ -72,22 +66,27 @@ func handleSearch() {
 	}
 }
 
-// --- Show task details ---
 func handleShow() {
-	id := arg(2)
-	if id == "" {
+	if len(os.Args) < 3 {
 		fail("Usage: todo show [id]")
 		return
 	}
 
-	debug("Showing details for task input: %s", id)
-
-	task, err := getTaskByInput(id)
+	id, err := parseID(os.Args[2])
 	if err != nil {
-		fail("%v", err)
+		fail("Invalid ID: %v", err)
 		return
 	}
 
-	info("Displaying details for #%d", task.ID)
+	task, err := todo.GetTaskByID(id)
+	if err != nil {
+		if errors.Is(err, todo.ErrTaskNotFound) {
+			warn("Task #%d not found.", id)
+			return
+		}
+		fail("Failed to get task: %v", err)
+		return
+	}
+
 	todo.PrintTaskDetails(*task)
 }

@@ -2,6 +2,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -123,11 +124,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(m.tasks) == 0 {
 				return m, nil
 			}
+
 			t := m.visibleTasks()[m.cursor]
-			m.tasks, _ = todo.RemoveTaskByID(m.tasks, t.ID)
-			_ = todo.SaveTasks(m.tasks)
-			m.saveMsg = "Task deleted"
-			m.saveTimeout = time.Now().Add(2 * time.Second)
+			deleted, err := todo.DeleteTaskByID(t.ID)
+			if err != nil {
+				if errors.Is(err, todo.ErrTaskNotFound) {
+					showError(&m, fmt.Errorf("task #%d not found", t.ID))
+				} else {
+					showError(&m, fmt.Errorf("delete failed: %v", err))
+				}
+				return m, nil
+			}
+
+			m.tasks, _ = todo.RemoveTaskByID(m.tasks, deleted.ID)
+			showSaveMsg(&m, fmt.Sprintf("🗑️ Deleted #%d: %s", deleted.ID, deleted.Text))
+
 		case "e":
 			if len(m.tasks) == 0 {
 				return m, nil
@@ -145,15 +156,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			t := tasks[m.cursor]
+
+			err := todo.UpdateTaskByID(t.ID, func(task *todo.Task) {
+				task.Completed = !task.Completed
+			})
+			if err != nil {
+				if errors.Is(err, todo.ErrTaskNotFound) {
+					showError(&m, fmt.Errorf("task #%d not found", t.ID))
+				} else {
+					showError(&m, fmt.Errorf("toggle failed: %v", err))
+				}
+				return m, nil
+			}
+
+			// reflect the change locally
 			for i := range m.tasks {
 				if m.tasks[i].ID == t.ID {
 					m.tasks[i].Completed = !m.tasks[i].Completed
 					break
 				}
 			}
-			todo.SaveTasks(m.tasks)
-			m.saveMsg = "Task toggled"
-			m.saveTimeout = time.Now().Add(2 * time.Second)
+			showSaveMsg(&m, fmt.Sprintf("✅ Task #%d toggled", t.ID))
+
 		}
 	}
 
@@ -163,20 +187,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
 			text := strings.TrimSpace(m.input.Value())
 			if text == "" {
-				m.err = fmt.Errorf("task cannot be empty")
-				m.errTimeout = time.Now().Add(3 * time.Second)
+				showError(&m, fmt.Errorf("task cannot be empty"))
 				m.state = "normal"
 				m.input.Reset()
 				return m, nil
 			}
+
 			task := todo.Task{ID: todo.NextTaskID(m.tasks), Text: text}
 			m.tasks = append(m.tasks, task)
 			_ = todo.SaveTasks(m.tasks)
-			m.saveMsg = "Task added"
-			m.saveTimeout = time.Now().Add(2 * time.Second)
+
+			showSaveMsg(&m, "Task added")
 			m.state = "normal"
 			m.input.Reset()
 		}
+
 		return m, cmd
 	}
 

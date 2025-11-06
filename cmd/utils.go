@@ -6,9 +6,20 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 	"todo/config"
 	todo "todo/td"
 )
+
+// --- Debug logging (optional) ---
+// var debugEnabled = os.Getenv("TODO_DEBUG") == "true"
+
+// func debug(msg string, args ...any) {
+// 	if debugEnabled {
+// 		fmt.Printf("[debug] "+msg+"\n", args...)
+// 	}
+// }
+
 
 // --- Output helpers ---
 func info(msg string, args ...any) {
@@ -92,3 +103,23 @@ func containsArg(flag string) bool {
 	}
 	return false
 }
+// parse
+func parseID(arg string) (int, error) {
+	id, err := strconv.Atoi(arg)
+	if err != nil || id <= 0 {
+		return 0, fmt.Errorf("invalid ID '%s'", arg)
+	}
+	return id, nil
+}
+
+// errors
+func showError(m *model, err error) {
+    m.err = err
+    m.errTimeout = time.Now().Add(3 * time.Second)
+}
+
+func showSaveMsg(m *model, msg string) {
+    m.saveMsg = msg
+    m.saveTimeout = time.Now().Add(2 * time.Second)
+}
+

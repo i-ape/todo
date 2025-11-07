@@ -177,10 +177,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			showSaveMsg(&m, fmt.Sprintf("✅ Task #%d toggled", t.ID))
-
 		}
 	}
 
+	// --- Handle new task entry ---
 	if m.state == "new_task" {
 		var cmd tea.Cmd
 		m.input, cmd = m.input.Update(msg)
@@ -201,7 +201,44 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.state = "normal"
 			m.input.Reset()
 		}
+		return m, cmd
+	}
 
+	// --- Handle edit task entry ---
+	if m.state == "edit_task" {
+		var cmd tea.Cmd
+		m.input, cmd = m.input.Update(msg)
+		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
+			text := strings.TrimSpace(m.input.Value())
+			if text == "" {
+				showError(&m, fmt.Errorf("task cannot be empty"))
+				m.state = "normal"
+				m.input.Reset()
+				return m, nil
+			}
+
+			// find selected task and update
+			t := m.visibleTasks()[m.cursor]
+			err := todo.UpdateTaskByID(t.ID, func(task *todo.Task) {
+				task.Text = text
+			})
+			if err != nil {
+				showError(&m, fmt.Errorf("edit failed: %v", err))
+				return m, nil
+			}
+
+			// update in memory
+			for i := range m.tasks {
+				if m.tasks[i].ID == t.ID {
+					m.tasks[i].Text = text
+					break
+				}
+			}
+
+			showSaveMsg(&m, fmt.Sprintf("✏️ Edited #%d", t.ID))
+			m.state = "normal"
+			m.input.Reset()
+		}
 		return m, cmd
 	}
 

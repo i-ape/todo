@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	//"todo/config"
 	todo "todo/td"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -77,7 +76,7 @@ func (m model) Init() tea.Cmd { return textinput.Blink }
 // 🔁 Update
 // ==============================
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// auto-clear messages
+	// Auto-clear timed messages
 	if !m.errTimeout.IsZero() && time.Now().After(m.errTimeout) {
 		m.err = nil
 		m.errTimeout = time.Time{}
@@ -124,7 +123,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(m.tasks) == 0 {
 				return m, nil
 			}
-
 			t := m.visibleTasks()[m.cursor]
 			deleted, err := todo.DeleteTaskByID(t.ID)
 			if err != nil {
@@ -135,7 +133,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, nil
 			}
-
 			m.tasks, _ = todo.RemoveTaskByID(m.tasks, deleted.ID)
 			showSaveMsg(&m, fmt.Sprintf("🗑️ Deleted #%d: %s", deleted.ID, deleted.Text))
 
@@ -156,7 +153,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			t := tasks[m.cursor]
-
 			err := todo.UpdateTaskByID(t.ID, func(task *todo.Task) {
 				task.Completed = !task.Completed
 			})
@@ -192,11 +188,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.Reset()
 				return m, nil
 			}
-
 			task := todo.Task{ID: todo.NextTaskID(m.tasks), Text: text}
 			m.tasks = append(m.tasks, task)
 			_ = todo.SaveTasks(m.tasks)
-
 			showSaveMsg(&m, "Task added")
 			m.state = "normal"
 			m.input.Reset()
@@ -216,8 +210,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.Reset()
 				return m, nil
 			}
-
-			// find selected task and update
 			t := m.visibleTasks()[m.cursor]
 			err := todo.UpdateTaskByID(t.ID, func(task *todo.Task) {
 				task.Text = text
@@ -226,16 +218,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				showError(&m, fmt.Errorf("edit failed: %v", err))
 				return m, nil
 			}
-
-			// update in memory
 			for i := range m.tasks {
 				if m.tasks[i].ID == t.ID {
 					m.tasks[i].Text = text
 					break
 				}
 			}
-
 			showSaveMsg(&m, fmt.Sprintf("✏️ Edited #%d", t.ID))
+			m.state = "normal"
+			m.input.Reset()
+		}
+		return m, cmd
+	}
+
+	// --- Handle filter tag entry ---
+	if m.state == "filter_tag" {
+		var cmd tea.Cmd
+		m.input, cmd = m.input.Update(msg)
+		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
+			m.filterTag = strings.TrimSpace(m.input.Value())
 			m.state = "normal"
 			m.input.Reset()
 		}
@@ -260,7 +261,7 @@ func (m model) View() string {
 	b.WriteString(m.headerView())
 	b.WriteString("\n")
 
-	if m.state == "new_task" {
+	if m.state == "new_task" || m.state == "edit_task" || m.state == "filter_tag" {
 		b.WriteString(fmt.Sprintf("📝 %s\n\n", m.input.View()))
 	}
 
@@ -323,7 +324,7 @@ func (m model) statusView() string {
 	case m.saveMsg != "":
 		return successStyle.Render(fmt.Sprintf("%s\n", m.saveMsg))
 	default:
-		return helpStyle.Render("↑/↓ navigate  ⏎ toggle  n new  h help  q quit\n")
+		return helpStyle.Render("↑/↓ navigate  ⏎ toggle  n new  e edit  d delete  t tag  h help  q quit\n")
 	}
 }
 
@@ -336,6 +337,9 @@ func (m model) helpView() string {
 			"↑/↓ or j/k  Move cursor\n" +
 			"⏎ or space  Toggle completion\n" +
 			"n           Add new task\n" +
+			"e           Edit selected task\n" +
+			"d           Delete selected task\n" +
+			"t           Filter by tag\n" +
 			"h           Show/hide help\n" +
 			"q, ctrl+c   Quit\n" +
 			"esc         Cancel input\n",

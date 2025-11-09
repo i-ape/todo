@@ -60,8 +60,13 @@ func NewModel() model {
 		fmt.Fprintf(os.Stderr, "Failed to load tasks: %v\n", err)
 		tasks = []todo.Task{}
 	}
+
+	// ✅ Log how many tasks were loaded (only if TODO_DEBUG=true)
+	debug("Loaded %d tasks into model", len(tasks))
+
 	input := textinput.New()
 	input.Focus()
+
 	return model{
 		tasks:    tasks,
 		state:    "normal",

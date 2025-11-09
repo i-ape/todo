@@ -1,7 +1,7 @@
-
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"todo/config"
@@ -29,6 +29,29 @@ func init() {
 
 }
 
+// Entry point
 func main() {
-	HandleCommands()
+	// Optional: print debug info about CLI args
+	debug("CLI args: %v", os.Args)
+
+	// Simple argument handling
+	switch arg(1) {
+	case "help":
+		fmt.Println("Usage: todo [command]")
+		fmt.Println("Commands:")
+		fmt.Println("  help   Show this help message")
+		fmt.Println("  tui    Launch the interactive TUI")
+		fmt.Println("  list   List tasks (CLI mode)")
+		fmt.Println("  add    Add a new task (CLI mode)")
+		return
+
+	case "tui", "":
+		// Default: launch the TUI
+		StartTUI()
+		return
+
+	default:
+		// Otherwise, handle CLI commands (like add, list, delete, etc.)
+		HandleCommands()
+	}
 }

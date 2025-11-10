@@ -5,55 +5,25 @@ import (
 	"os"
 	"strings"
 
-	"todo/config"
 	todo "todo/td"
 	//"github.com/fatih/color"
 )
 
-//var DisableFzf, EnableTui bool
-
+// var DisableFzf, EnableTui bool
 func HandleCommands() {
-	// Parse flags
-	for i := 1; i < len(os.Args); i++ {
-		if os.Args[i] == "--no-fzf" {
-			config.DisableFzf = true
-			os.Args = append(os.Args[:i], os.Args[i+1:]...)
-			i--
-		}
-		if os.Args[i] == "--tui" {
-			config.EnableTui = true
-			os.Args = append(os.Args[:i], os.Args[i+1:]...)
-			i--
-		}
-	}
-
-	// 🧃 Launch TUI if enabled
-	if config.EnableTui {
-		StartTUI()
-		return
-	}
-
-	if len(os.Args) < 2 {
+	cmd := strings.ToLower(arg(1))
+	if cmd == "" {
 		handleList()
 		return
 	}
 
 	aliases := map[string]string{
-		"a":      "add",
-		"ls":     "list",
-		"d":      "done",
-		"rm":     "delete",
-		"del":    "delete",
-		"clr":    "clear",
-		"r":      "reset",
-		"s":      "search",
-		"h":      "help",
-		"?":      "help",
-		"-h":     "help",
-		"--help": "help",
+		"a": "add", "ls": "list", "d": "done",
+		"rm": "delete", "del": "delete",
+		"clr": "clear", "r": "reset", "s": "search",
+		"h": "help", "?": "help", "-h": "help", "--help": "help",
 	}
 
-	cmd := strings.ToLower(os.Args[1])
 	if real, ok := aliases[cmd]; ok {
 		cmd = real
 	}
@@ -97,11 +67,9 @@ func HandleCommands() {
 		handleShow()
 	case "help":
 		handleHelp()
-
 	default:
 		fmt.Println("❌ Unknown command:", cmd)
 		printHelp()
-
 	}
 }
 

@@ -5,15 +5,14 @@ import (
 	"os"
 	"strings"
 
+	"todo/cmd/handlers" // 👈 import your handlers package
 	todo "todo/td"
-	//"github.com/fatih/color"
 )
 
-// var DisableFzf, EnableTui bool
 func HandleCommands() {
 	cmd := strings.ToLower(arg(1))
 	if cmd == "" {
-		handleList()
+		handlers.HandleList()
 		return
 	}
 
@@ -30,43 +29,43 @@ func HandleCommands() {
 
 	switch cmd {
 	case "add":
-		handleAdd()
+		handlers.Add()
 	case "edit":
-		handleEdit()
+		handlers.Edit()
 	case "list":
-		handleList()
+		handlers.List()
 	case "done":
-		handleDone()
+		handlers.Done()
 	case "due":
-		handleDue()
+		handlers.Due()
 	case "delete":
-		handleDelete()
+		handlers.Delete()
 	case "clear":
-		handleClear()
+		handlers.Clear()
 	case "reset":
-		handleReset()
+		handlers.Reset()
 	case "search":
-		handleSearch()
+		handlers.Search()
 	case "priority":
-		handlePriority()
+		handlers.Priority()
 	case "tag":
-		handleTags()
+		handlers.Tags()
 	case "recurring":
-		handleRecurring()
+		handlers.Recurring()
 	case "move":
-		handleMove()
+		handlers.Move()
 	case "tui":
 		StartTUI()
 	case "note":
-		handleNote()
+		handlers.Note()
 	case "sub":
-		handleSubtask()
+		handlers.Subtask()
 	case "pick":
-		handlePick()
+		handlers.Pick()
 	case "show":
-		handleShow()
+		handlers.Show()
 	case "help":
-		handleHelp()
+		handlers.Help()
 	default:
 		fmt.Println("❌ Unknown command:", cmd)
 		printHelp()

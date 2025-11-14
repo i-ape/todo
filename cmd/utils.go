@@ -56,7 +56,7 @@ func arg(i int) string {
 }
 
 // --- Task selection helper ---
-func selectSingleTask() (*todo.Task, error) {
+func SelectSingleTask() (*todo.Task, error) {
 	selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
 	if err != nil {
 		return nil, err

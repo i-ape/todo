@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	todo "todo/td"
+	td"todo/td"
 )
 
 func parseID(s string) (int, error) {
@@ -20,12 +20,12 @@ func containsArg(target string) bool {
 	return false
 }
 
-func getTaskByInput(input string) (*todo.Task, error) {
+func getTaskByInput(input string) (*td.Task, error) {
 	id, err := strconv.Atoi(input)
 	if err == nil {
-		return todo.GetTaskByID(id)
+		return td.GetTaskByID(id)
 	}
-	tasks, err := todo.LoadTasks()
+	tasks, err := td.LoadTasks()
 	if err != nil {
 		return nil, err
 	}
@@ -35,4 +35,16 @@ func getTaskByInput(input string) (*todo.Task, error) {
 		}
 	}
 	return nil, fmt.Errorf("no match for input: %s", input)
+}
+
+func fail(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, "❌ "+format+"\n", args...)
+}
+
+func warn(format string, args ...any) {
+	fmt.Fprintf(os.Stdout, "⚠️  "+format+"\n", args...)
+}
+
+func success(format string, args ...any) {
+	fmt.Fprintf(os.Stdout, format+"\n", args...)
 }

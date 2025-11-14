@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"todo/cmd/handlers" // 👈 import your handlers package
+	"todo/handlers" // 👈 import your handlers package
 	todo "todo/td"
 )
 

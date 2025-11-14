@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 	"todo/config"
-	todo "todo/td"
+	td "todo/td"
 )
 
 // --- Debug logging (optional) ---
@@ -56,8 +56,8 @@ func arg(i int) string {
 }
 
 // --- Task selection helper ---
-func SelectSingleTask() (*todo.Task, error) {
-	selected, err := todo.SelectTasksWithFzf(false, config.DisableFzf)
+func SelectSingleTask() (*td.Task, error) {
+	selected, err := td.SelectTasksWithFzf(false, config.DisableFzf)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func SelectSingleTask() (*todo.Task, error) {
 
 // --- Task lookup by ID or partial text ---
 func getTaskByInput(input string) (*todo.Task, error) {
-	tasks, err := todo.LoadTasks()
+	tasks, err := td.LoadTasks()
 	if err != nil {
 		return nil, err
 	}

@@ -68,7 +68,7 @@ func SelectSingleTask() (*td.Task, error) {
 }
 
 // --- Task lookup by ID or partial text ---
-func getTaskByInput(input string) (*todo.Task, error) {
+func getTaskByInput(input string) (*td.Task.Task, error) {
 	tasks, err := td.LoadTasks()
 	if err != nil {
 		return nil, err

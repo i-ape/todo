@@ -1,5 +1,5 @@
 // fzf.go
-package todo
+package cmd
 
 import (
 	"bufio"

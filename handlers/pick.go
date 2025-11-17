@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	cmd "todo/cmd"
 	"todo/config"
-	td"todo/td"
+	td "todo/td"
 )
 
 func Pick() {
-	tasks, err := td.SelectTasksWithFzf(true, config.DisableFzf)
+	tasks, err := cmd.SelectTasksWithFzf(true, config.DisableFzf)
 	if err != nil || len(tasks) == 0 {
 		fail("No task selected: %v", err)
 		return

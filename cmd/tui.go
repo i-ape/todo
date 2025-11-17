@@ -1,5 +1,5 @@
 // cmd/tui.go
-package main
+package cmd
 
 import (
 	"errors"

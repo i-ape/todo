@@ -1,5 +1,5 @@
 // todo.int/ui.go
-package todo
+package cmd
 
 import (
 	"fmt"

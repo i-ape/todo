@@ -1,5 +1,5 @@
 // cmd/utils.go
-package main
+package cmd
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"time"
 	"todo/config"
 	td "todo/td"
+	cmd "todo/cmd"
 )
 
 // --- Debug logging (optional) ---
@@ -57,7 +58,7 @@ func arg(i int) string {
 
 // --- Task selection helper ---
 func SelectSingleTask() (*td.Task, error) {
-	selected, err := td.SelectTasksWithFzf(false, config.DisableFzf)
+	selected, err := cmd.SelectTasksWithFzf(false, config.DisableFzf)
 	if err != nil {
 		return nil, err
 	}

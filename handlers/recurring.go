@@ -1,9 +1,12 @@
 package handlers
 
-import td"todo/td"
+import (
+	"todo/cmd"
+	td "todo/td"
+)
 
 func Recurring() {
-	task, err := SelectSingleTask()
+	task, err := cmd.SelectSingleTask()
 	if err != nil {
 		fail("Error selecting task: %v", err)
 		return

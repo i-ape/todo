@@ -9,7 +9,6 @@ import (
 	"time"
 	"todo/config"
 	td "todo/td"
-	cmd "todo/cmd"
 )
 
 // --- Debug logging (optional) ---

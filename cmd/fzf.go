@@ -8,11 +8,12 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	td "todo/td"
 )
 
 // --- FZF Selector ---
 func SelectTasksWithFzf(multi bool, disable bool) ([]Task, error) {
-	tasks, err := LoadTasks()
+	tasks, err := td.LoadTasks()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}

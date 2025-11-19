@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	td"todo/td"
+	"todo/cmd"
+	td "todo/td"
 )
 
 func Priority() {
-	task, err := ()
+	task, err := (cmd.SelectSingleTask())
 	if err != nil {
 		fail("Error selecting task: %v", err)
 		return

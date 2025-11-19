@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"todo/config"
-	"todo/td"
+	td "todo/td"
 )
 
 func List() {

@@ -12,7 +12,7 @@ import (
 )
 
 // --- FZF Selector ---
-func SelectTasksWithFzf(multi bool, disable bool) ([]Task, error) {
+func SelectTasksWithFzf(multi bool, disable bool) ([]td.Task, error) {
 	tasks, err := td.LoadTasks()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
@@ -28,7 +28,7 @@ func SelectTasksWithFzf(multi bool, disable bool) ([]Task, error) {
 			if err != nil {
 				return nil, err
 			}
-			return []Task{task}, nil
+			return []td.Task{task}, nil
 		}
 	}
 
@@ -48,19 +48,19 @@ func SelectTasksWithFzf(multi bool, disable bool) ([]Task, error) {
 
 	for _, t := range tasks {
 		if t.ID == id {
-			return []Task{t}, nil
+			return []td.Task{t}, nil
 		}
 	}
 	return nil, fmt.Errorf("task not found")
 }
 
 // SelectTaskFzf allows user to choose a single task
-func SelectTaskFzf(tasks []Task) (Task, error) {
+func SelectTaskFzf(tasks []td.Task) (td.Task, error) {
 	if _, err := exec.LookPath("fzf"); err != nil {
-		return Task{}, fmt.Errorf("fzf not found")
+		return td.Task{}, fmt.Errorf("fzf not found")
 	}
 	opts := []string{}
-	ref := map[string]Task{}
+	ref := map[string]td.Task{}
 	for _, t := range tasks {
 		label := fmt.Sprintf("%d: %s", t.ID, t.Text)
 		opts = append(opts, label)
@@ -70,23 +70,23 @@ func SelectTaskFzf(tasks []Task) (Task, error) {
 	cmd.Stdin = strings.NewReader(strings.Join(opts, "\n"))
 	out, err := cmd.Output()
 	if err != nil {
-		return Task{}, fmt.Errorf("fzf error: %w", err)
+		return td.Task{}, fmt.Errorf("fzf error: %w", err)
 	}
 	choice := strings.TrimSpace(string(out))
 	task, ok := ref[choice]
 	if !ok {
-		return Task{}, fmt.Errorf("invalid selection")
+		return td.Task{}, fmt.Errorf("invalid selection")
 	}
 	return task, nil
 }
 
 // SelectMultipleTasksFzf allows multiple task selection
-func SelectMultipleTasksFzf(tasks []Task) ([]Task, error) {
+func SelectMultipleTasksFzf(tasks []td.Task) ([]td.Task, error) {
 	if _, err := exec.LookPath("fzf"); err != nil {
 		return nil, fmt.Errorf("fzf not found")
 	}
 	opts := []string{}
-	ref := map[string]Task{}
+	ref := map[string]td.Task{}
 	for _, t := range tasks {
 		label := fmt.Sprintf("%d: %s", t.ID, t.Text)
 		opts = append(opts, label)
@@ -99,7 +99,7 @@ func SelectMultipleTasksFzf(tasks []Task) ([]Task, error) {
 		return nil, fmt.Errorf("fzf error: %w", err)
 	}
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-	var result []Task
+	var result []td.Task
 	for _, l := range lines {
 		if task, ok := ref[l]; ok {
 			result = append(result, task)

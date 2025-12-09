@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"todo/cmd"
 	"todo/config"
 	td "todo/td"
 )
@@ -19,7 +20,6 @@ import (
 // 		fmt.Printf("[debug] "+msg+"\n", args...)
 // 	}
 // }
-
 
 // --- Output helpers ---
 func info(msg string, args ...any) {
@@ -68,7 +68,7 @@ func SelectSingleTask() (*td.Task, error) {
 }
 
 // --- Task lookup by ID or partial text ---
-func getTaskByInput(input string) (*td.Task.Task, error) {
+func getTaskByInput(input string) (*td.Task, error) {
 	tasks, err := td.LoadTasks()
 	if err != nil {
 		return nil, err
@@ -103,6 +103,7 @@ func containsArg(flag string) bool {
 	}
 	return false
 }
+
 // parse
 func parseID(arg string) (int, error) {
 	id, err := strconv.Atoi(arg)
@@ -114,12 +115,11 @@ func parseID(arg string) (int, error) {
 
 // errors
 func showError(m *model, err error) {
-    m.err = err
-    m.errTimeout = time.Now().Add(3 * time.Second)
+	m.err = err
+	m.errTimeout = time.Now().Add(3 * time.Second)
 }
 
 func showSaveMsg(m *model, msg string) {
-    m.saveMsg = msg
-    m.saveTimeout = time.Now().Add(2 * time.Second)
+	m.saveMsg = msg
+	m.saveTimeout = time.Now().Add(2 * time.Second)
 }
-

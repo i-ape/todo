@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"strings"
 
+	td "todo/td"
+
 	"github.com/fatih/color"
 )
 
 // PrintTask renders a single top-level task
-func PrintTask(task Task, showNotes bool) {
+func PrintTask(task td.Task, showNotes bool) {
 	status := "[ ]"
 	if task.Completed {
 		status = "[✓]"
-	} else if IsOverdue(task.DueDate) {
+	} else if td.IsOverdue(task.DueDate) {
 		status = "[✗]"
 	}
 	line := fmt.Sprintf("%s %d: %s", status, task.ID, task.Text)
@@ -30,11 +32,11 @@ func PrintTask(task Task, showNotes bool) {
 }
 
 // PrintTaskIndented renders a subtask
-func PrintTaskIndented(task Task, showNotes bool) {
+func PrintTaskIndented(task td.Task, showNotes bool) {
 	status := "   [ ]"
 	if task.Completed {
 		status = "   [✓]"
-	} else if IsOverdue(task.DueDate) {
+	} else if td.IsOverdue(task.DueDate) {
 		status = "   [✗]"
 	}
 	line := fmt.Sprintf("%s %d: %s", status, task.ID, task.Text)

@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"todo/handlers" 
+	handlers "todo/handlers"
 	todo "todo/td"
 )
 

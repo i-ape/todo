@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"todo/cmd"
 	"todo/config"
+	"todo/handlers"
 )
 
 func init() {
@@ -32,7 +34,7 @@ func init() {
 // Entry point
 func main() {
 	// Optional: print debug info about CLI args
-	debug("CLI args: %v", os.Args)
+	cmd.Debug("CLI args: %v", os.Args)
 
 	// Simple argument handling
 	switch arg(1) {
@@ -47,11 +49,11 @@ func main() {
 
 	case "tui", "":
 		// Default: launch the TUI
-		StartTUI()
+		cmd.StartTUI()
 		return
 
 	default:
 		// Otherwise, handle CLI commands (like add, list, delete, etc.)
-		HandleCommands()
+		cmd.HandleCommands()
 	}
 }

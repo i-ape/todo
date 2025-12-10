@@ -41,7 +41,7 @@ func fail(msg string, args ...any) {
 // --- Debug logging (optional) ---
 var debugEnabled = os.Getenv("TODO_DEBUG") == "true"
 
-func debug(msg string, args ...any) {
+func Debug(msg string, args ...any) {
 	if debugEnabled {
 		fmt.Printf("[debug] "+msg+"\n", args...)
 	}

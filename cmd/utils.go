@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"todo/cmd"
 	"todo/config"
 	td "todo/td"
 )
@@ -57,7 +56,7 @@ func arg(i int) string {
 
 // --- Task selection helper ---
 func SelectSingleTask() (*td.Task, error) {
-	selected, err := cmd.SelectTasksWithFzf(false, config.DisableFzf)
+	selected, err := SelectTasksWithFzf(false, config.DisableFzf)
 	if err != nil {
 		return nil, err
 	}

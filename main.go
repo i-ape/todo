@@ -6,7 +6,7 @@ import (
 	"os"
 	"todo/cmd"
 	"todo/config"
-	"todo/handlers"
+	///"todo/handlers"
 )
 
 func init() {

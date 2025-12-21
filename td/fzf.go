@@ -1,5 +1,4 @@
-// fzf.go
-package cmd
+package td
 
 import (
 	"bufio"
